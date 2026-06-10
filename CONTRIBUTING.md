@@ -103,8 +103,10 @@ Check:
 
 - language selection
 - ZIP picker
+- participant list loading after ZIP selection
 - output folder picker
-- owner field
+- owner field stays disabled until participants are loaded
+- generate button stays disabled until ZIP, output folder, and owner are set
 - audio conversion checkbox
 - self-contained option
 - generated output folder

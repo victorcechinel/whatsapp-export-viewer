@@ -59,9 +59,11 @@ Each desktop package includes:
 2. Extract the archive.
 3. Open `whatsapp-export-viewer-gui`.
 4. Choose your WhatsApp ZIP export.
-5. Choose an output folder.
-6. Pick the language and optional audio conversion.
-7. Generate the viewer and open `index.html`.
+5. Wait for the participant list to load from the ZIP.
+6. Choose your name in the chat.
+7. Choose an output folder.
+8. Pick the language and optional audio conversion.
+9. Generate the viewer and open `index.html`.
 
 The graphical app currently supports English, Portuguese, and Spanish. The language can be changed inside the app.
 

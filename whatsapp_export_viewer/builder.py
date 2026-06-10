@@ -52,6 +52,20 @@ def prepare_output_directory(output: Path) -> Path:
     return output
 
 
+def discover_participants(zip_path: Path) -> list[str]:
+    zip_path = zip_path.expanduser()
+    if not zip_path.exists():
+        raise FileNotFoundError(f"ZIP not found: {zip_path}")
+    with tempfile.TemporaryDirectory() as tmp:
+        extracted = Path(tmp) / "extract"
+        extracted.mkdir()
+        safe_extract_zip(zip_path, extracted)
+        chat_file = find_chat_file(extracted)
+        messages = parse_chat_text(read_text_flex(chat_file))
+    participants = Counter(message["sender"] for message in messages if message.get("sender"))
+    return [name for name, _count in participants.most_common()]
+
+
 def attach_media(messages: list[dict[str, Any]], media_map: MediaMap, owner: str | None) -> None:
     for message in messages:
         message["side"] = "out" if owner and message.get("sender") == owner else "in"

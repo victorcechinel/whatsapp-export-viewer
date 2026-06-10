@@ -6,7 +6,7 @@ import sys
 import threading
 from pathlib import Path
 
-from .builder import build_export
+from .builder import build_export, discover_participants
 from .i18n import SUPPORTED_LANGUAGES, load_translations, normalize_language, system_language
 
 tk = None
@@ -43,6 +43,10 @@ class ViewerApp:
         self.self_contained = tk.BooleanVar(value=False)
         self.status = tk.StringVar(value=self.text["ready"])
         self.build_ui()
+        self.zip_path.trace_add("write", lambda *_args: self.update_generate_state())
+        self.output_path.trace_add("write", lambda *_args: self.update_generate_state())
+        self.owner.trace_add("write", lambda *_args: self.update_generate_state())
+        self.update_generate_state()
 
     def tr(self, key: str) -> str:
         return self.text.get(key, key)
@@ -83,7 +87,9 @@ class ViewerApp:
 
         self.labels["owner"] = ttk.Label(frame, text=self.tr("owner"))
         self.labels["owner"].grid(row=row, column=0, sticky=tk.W, pady=6)
-        ttk.Entry(frame, textvariable=self.owner).grid(row=row, column=1, columnspan=2, sticky=tk.EW, pady=6)
+        self.owner_box = ttk.Combobox(frame, textvariable=self.owner, values=[], state="disabled")
+        self.owner_box.grid(row=row, column=1, columnspan=2, sticky=tk.EW, pady=6)
+        self.owner_box.bind("<<ComboboxSelected>>", lambda _event: self.update_generate_state())
         row += 1
 
         self.check_convert = ttk.Checkbutton(frame, text=self.tr("convert_audio"), variable=self.convert_audio)
@@ -104,6 +110,12 @@ class ViewerApp:
 
         ttk.Label(frame, textvariable=self.status).grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=6)
 
+    def update_generate_state(self) -> None:
+        if "generate" not in self.buttons:
+            return
+        ready = bool(self.zip_path.get() and self.output_path.get() and self.owner.get())
+        self.buttons["generate"].configure(state=tk.NORMAL if ready else tk.DISABLED)
+
     def change_language(self) -> None:
         self.text = load_translations(self.language.get())
         self.root.title(self.tr("app_title"))
@@ -120,8 +132,38 @@ class ViewerApp:
         path = filedialog.askopenfilename(filetypes=[("WhatsApp ZIP", "*.zip"), ("All files", "*.*")])
         if path:
             self.zip_path.set(path)
+            self.owner.set("")
+            self.owner_box.configure(values=[], state="disabled")
+            self.status.set(self.tr("loading_participants"))
             if not self.output_path.get():
                 self.output_path.set(str(Path(path).with_suffix("")))
+            thread = threading.Thread(target=self._load_participants_worker, args=(Path(path),), daemon=True)
+            thread.start()
+
+    def _load_participants_worker(self, zip_path: Path) -> None:
+        try:
+            participants = discover_participants(zip_path)
+        except Exception as exc:  # pragma: no cover - UI surface
+            self.root.after(0, lambda: self._participants_failed(exc))
+            return
+        self.root.after(0, lambda: self._participants_loaded(zip_path, participants))
+
+    def _participants_loaded(self, zip_path: Path, participants: list[str]) -> None:
+        if Path(self.zip_path.get()) != zip_path:
+            return
+        self.owner_box.configure(values=participants, state="readonly" if participants else "disabled")
+        if participants:
+            self.status.set(self.tr("select_owner"))
+        else:
+            self.status.set(self.tr("no_participants"))
+        self.update_generate_state()
+
+    def _participants_failed(self, exc: Exception) -> None:
+        self.owner.set("")
+        self.owner_box.configure(values=[], state="disabled")
+        self.status.set(f"{self.tr('error')}: {exc}")
+        messagebox.showerror(self.tr("app_title"), f"{self.tr('error')}:\n{exc}")
+        self.update_generate_state()
 
     def choose_output(self) -> None:
         path = filedialog.askdirectory()
@@ -134,6 +176,9 @@ class ViewerApp:
             return
         if not self.output_path.get():
             messagebox.showwarning(self.tr("app_title"), self.tr("missing_output"))
+            return
+        if not self.owner.get():
+            messagebox.showwarning(self.tr("app_title"), self.tr("missing_owner"))
             return
         self.buttons["generate"].configure(state=tk.DISABLED)
         self.status.set(self.tr("generate") + "...")
@@ -156,13 +201,13 @@ class ViewerApp:
         self.root.after(0, self._generation_succeeded)
 
     def _generation_succeeded(self) -> None:
-        self.buttons["generate"].configure(state=tk.NORMAL)
         self.status.set(self.tr("success"))
+        self.update_generate_state()
 
     def _generation_failed(self, exc: Exception) -> None:
-        self.buttons["generate"].configure(state=tk.NORMAL)
         self.status.set(f"{self.tr('error')}: {exc}")
         messagebox.showerror(self.tr("app_title"), f"{self.tr('error')}:\n{exc}")
+        self.update_generate_state()
 
     def open_output(self) -> None:
         path = self.output_path.get()

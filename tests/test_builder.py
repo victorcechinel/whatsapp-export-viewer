@@ -3,7 +3,7 @@ import zipfile
 
 import pytest
 
-from whatsapp_export_viewer.builder import build_export, safe_extract_zip
+from whatsapp_export_viewer.builder import build_export, discover_participants, safe_extract_zip
 
 
 def test_builds_offline_export_with_organized_media(tmp_path):
@@ -60,6 +60,20 @@ def test_blocks_zip_path_traversal(tmp_path):
         safe_extract_zip(zip_path, destination)
 
     assert not (tmp_path / "evil.txt").exists()
+
+
+def test_discovers_participants_from_zip(tmp_path):
+    zip_path = tmp_path / "WhatsApp Chat.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr(
+            "_chat.txt",
+            """10/06/2026 14:35 - Ana: Olá
+10/06/2026 14:36 - Beto: Oi
+10/06/2026 14:37 - Ana: Tudo bem?
+""",
+        )
+
+    assert discover_participants(zip_path) == ["Ana", "Beto"]
 
 
 def test_refuses_non_empty_output_directory(tmp_path):
