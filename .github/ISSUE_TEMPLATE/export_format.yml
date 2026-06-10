@@ -5,7 +5,7 @@ labels: ["parser", "compatibility"]
 body:
   - type: markdown
     attributes:
-      value: "Please provide fictional or anonymized examples only."
+      value: "Please provide fictional or anonymized examples only. Open this issue first, then link it from a PR if you add parser support."
   - type: dropdown
     id: source
     attributes:
@@ -28,4 +28,13 @@ body:
       placeholder: "[10/06/2026, 14:35:22] Ana: Hello"
     validations:
       required: true
-
+  - type: textarea
+    id: expected_parse
+    attributes:
+      label: Expected parsed result
+      placeholder: "Sender, date, time, text, and attachments expected from the examples."
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Include platform details, export settings, or media naming patterns.

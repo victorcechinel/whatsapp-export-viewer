@@ -3,6 +3,9 @@ description: Suggest an improvement for the CLI, GUI, generated viewer, or websi
 title: "feat: "
 labels: ["enhancement"]
 body:
+  - type: markdown
+    attributes:
+      value: "Please open an issue before starting implementation. Pull requests should usually come from a fork or feature branch and link back to this issue."
   - type: textarea
     id: problem
     attributes:
@@ -29,4 +32,12 @@ body:
         - Installer/release
         - Documentation/site
         - Other
-
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: contribution
+    attributes:
+      label: Contribution plan
+      description: Tell us if you want to submit a PR for this feature.

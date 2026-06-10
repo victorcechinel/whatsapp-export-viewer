@@ -19,6 +19,17 @@ python -m pip install -e ".[dev]"
 pytest
 ```
 
+For most external contributions:
+
+1. Fork the repository on GitHub.
+2. Clone your fork locally.
+3. Open an issue in this repository describing the bug, feature, parser format, or documentation change.
+4. Create a branch in your fork.
+5. Commit using Conventional Commits.
+6. Push to your fork.
+7. Open a pull request from your fork to `victorcechinel/whatsapp-export-viewer:main`.
+8. Link the issue in the pull request description.
+
 ## 🌿 Branches
 
 Use small, focused branches:
@@ -53,11 +64,48 @@ pytest
 python -m build
 ```
 
+Test the CLI with a tiny fictional ZIP export:
+
+```bash
+python - <<'PY'
+import zipfile
+from pathlib import Path
+path = Path("/tmp/whatsapp-viewer-sample.zip")
+with zipfile.ZipFile(path, "w") as archive:
+    archive.writestr("_chat.txt", "10/06/2026 14:35 - Ana: Olá\n")
+print(path)
+PY
+whatsapp-export-viewer /tmp/whatsapp-viewer-sample.zip --output /tmp/whatsapp-viewer-test
+```
+
+If you are working on the GUI, run:
+
+```bash
+whatsapp-export-viewer-gui
+```
+
+Check:
+
+- language selection
+- ZIP picker
+- output folder picker
+- owner field
+- audio conversion checkbox
+- self-contained option
+- generated output folder
+
 If you changed release packaging, also test:
 
 ```bash
 pyinstaller --onefile --name whatsapp-export-viewer --collect-data whatsapp_export_viewer scripts/whatsapp-export-viewer.py
 pyinstaller --onefile --name whatsapp-export-viewer-gui --collect-data whatsapp_export_viewer --hidden-import tkinter --hidden-import tkinter.filedialog --hidden-import tkinter.messagebox --hidden-import tkinter.ttk scripts/whatsapp-export-viewer-gui.py
+```
+
+Then run the generated binaries:
+
+```bash
+./dist/whatsapp-export-viewer --version
+./dist/whatsapp-export-viewer-gui
 ```
 
 If you changed the GitHub Pages site, open `docs/index.html` locally and test the language selector.
