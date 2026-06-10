@@ -93,6 +93,12 @@ With the repository virtual environment, you can also run:
 .venv/bin/whatsapp-export-viewer-gui
 ```
 
+On macOS with Homebrew Python, install the matching Tk package if the GUI reports that Tkinter is unavailable:
+
+```bash
+brew install python-tk@3.14
+```
+
 Check:
 
 - language selection
