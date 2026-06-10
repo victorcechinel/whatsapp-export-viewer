@@ -15,6 +15,7 @@ def test_translations_have_expected_keys():
         assert set(translations) == expected
         assert translations["app_title"] == "WhatsApp Export Viewer"
         assert translations["generate"]
+        assert translations["open_browser"]
         assert translations["viewer_chat"]
 
 

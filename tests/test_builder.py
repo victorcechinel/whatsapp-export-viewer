@@ -35,6 +35,8 @@ def test_builds_offline_export_with_organized_media(tmp_path):
     assert "showMediaView" in app_js
     assert "media-card ${esc(message.side" in app_js
     assert "Voltar" in index_html
+    assert 'data-kind="images"' in index_html
+    assert 'class="gallery"' not in index_html
     assert "{{" not in index_html
 
     messages = json.loads((output / "data" / "messages.json").read_text(encoding="utf-8"))

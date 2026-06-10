@@ -18,20 +18,11 @@
         <select id="participant"><option value="">{{viewer_all_participants}}</option></select>
       </section>
       <section class="stats">
-        <div class="stat"><b id="total">0</b><span>{{viewer_messages}}</span></div>
-        <div class="stat"><b id="images">0</b><span>{{viewer_images}}</span></div>
-        <div class="stat"><b id="videos">0</b><span>{{viewer_videos}}</span></div>
-        <div class="stat"><b id="audios">0</b><span>{{viewer_audios}}</span></div>
-        <div class="stat"><b id="docs">0</b><span>{{viewer_documents}}</span></div>
-      </section>
-      <section class="gallery">
-        <h2>{{viewer_gallery}}</h2>
-        <div class="tabs">
-          <button data-kind="images">{{viewer_images}}</button>
-          <button data-kind="videos">{{viewer_videos}}</button>
-          <button data-kind="audios">{{viewer_audios}}</button>
-          <button data-kind="documents">{{viewer_documents}}</button>
-        </div>
+        <button class="stat active" type="button" data-view="chat"><b id="total">0</b><span>{{viewer_messages}}</span></button>
+        <button class="stat" type="button" data-kind="images"><b id="images">0</b><span>{{viewer_images}}</span></button>
+        <button class="stat" type="button" data-kind="videos"><b id="videos">0</b><span>{{viewer_videos}}</span></button>
+        <button class="stat" type="button" data-kind="audios"><b id="audios">0</b><span>{{viewer_audios}}</span></button>
+        <button class="stat" type="button" data-kind="documents"><b id="docs">0</b><span>{{viewer_documents}}</span></button>
       </section>
       <section class="participants"><h2>{{viewer_participants}}</h2><div id="participants"></div></section>
       <section class="dates"><h2>{{viewer_dates}}</h2><div id="dates"></div></section>

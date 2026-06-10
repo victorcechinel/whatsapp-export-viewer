@@ -26,16 +26,14 @@ body {
 .controls { padding: 14px; display: grid; gap: 10px; }
 .controls input, .controls select { width: 100%; border: 1px solid var(--line); background: white; border-radius: 7px; padding: 10px 12px; font-size: 14px; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 14px; }
-.stat { background: white; border: 1px solid #ececec; border-radius: 8px; padding: 10px; }
+.stat { background: white; border: 1px solid #ececec; border-radius: 8px; padding: 10px; color: var(--text); cursor: pointer; text-align: left; font: inherit; }
+.stat.active { background: #075e54; border-color: #075e54; color: white; }
 .stat b { display: block; font-size: 20px; }
 .stat span { color: var(--muted); font-size: 12px; }
-.participants, .dates, .gallery { padding: 0 14px 16px; }
-.gallery { border-top: 1px solid var(--line); padding-top: 14px; }
-.participants h2, .dates h2, .gallery h2 { font-size: 13px; text-transform: uppercase; color: var(--muted); letter-spacing: .04em; }
+.stat.active span { color: rgba(255, 255, 255, .82); }
+.participants, .dates { padding: 0 14px 16px; }
+.participants h2, .dates h2 { font-size: 13px; text-transform: uppercase; color: var(--muted); letter-spacing: .04em; }
 .pill { display: flex; justify-content: space-between; gap: 8px; border: 0; background: white; border-radius: 7px; padding: 8px 10px; margin: 6px 0; width: 100%; cursor: pointer; text-align: left; }
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.tabs button { border: 1px solid var(--line); background: white; border-radius: 7px; padding: 7px 9px; cursor: pointer; }
-.tabs button.active { background: #075e54; color: white; border-color: #075e54; }
 
 .main {
   height: 100vh;
@@ -101,4 +99,3 @@ body {
   .bubble { max-width: 88%; }
   .topbar { top: 0; }
 }
-

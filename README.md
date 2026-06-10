@@ -63,7 +63,7 @@ Each desktop package includes:
 6. Choose your name in the chat.
 7. Choose an output folder.
 8. Pick the language and optional audio conversion.
-9. Generate the viewer and open `index.html`.
+9. Generate the viewer, then open the generated folder or launch `index.html` in your browser from the app.
 
 The graphical app currently supports English, Portuguese, and Spanish. The language can be changed inside the app.
 

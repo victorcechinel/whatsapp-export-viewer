@@ -107,6 +107,7 @@ Check:
 - output folder picker
 - owner field stays disabled until participants are loaded
 - generate button stays disabled until ZIP, output folder, and owner are set
+- open-in-browser button stays disabled until generation succeeds
 - audio conversion checkbox
 - self-contained option
 - generated output folder

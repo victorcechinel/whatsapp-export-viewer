@@ -72,7 +72,10 @@ function setTopbar(title, shown) {
 }
 
 function setActiveMedia(kind) {
-  document.querySelectorAll(".tabs button").forEach((button) => button.classList.toggle("active", button.dataset.kind === kind));
+  document.querySelectorAll(".stats .stat").forEach((button) => {
+    const active = kind ? button.dataset.kind === kind : button.dataset.view === "chat";
+    button.classList.toggle("active", active);
+  });
 }
 
 function showChat() {
@@ -219,8 +222,9 @@ document.addEventListener("click", (event) => {
   }
   if (event.target.matches("#more")) renderMore();
   if (event.target.matches("#backToChat")) showChat();
-  const tab = event.target.closest(".tabs button");
-  if (tab) showMediaView(tab.dataset.kind);
+  const stat = event.target.closest(".stats .stat");
+  if (stat?.dataset.view === "chat") showChat();
+  if (stat?.dataset.kind) showMediaView(stat.dataset.kind);
   if (event.target.matches("#closeLightbox") || event.target.matches("#lightbox")) $("#lightbox").classList.remove("open");
 });
 
