@@ -37,3 +37,21 @@ def test_invisible_markers_do_not_merge_attached_messages():
     assert messages[1]["attachment_refs"] == ["00000178-AUDIO-2025-07-23-13-35-12.opus"]
     assert messages[2]["attachment_refs"] == ["00000181-PHOTO-2025-07-23-13-41-54.jpg"]
 
+
+def test_classifies_whatsapp_special_events():
+    messages = parse_chat_text(
+        """10/06/2026 14:35 - Ana: Esta mensagem foi apagada
+10/06/2026 14:36 - Beto: Chamada de voz perdida
+10/06/2026 14:37 - Ana: Foto de visualização única
+10/06/2026 14:38 - Beto: Texto corrigido (editada)
+"""
+    )
+
+    assert messages[0]["type"] == "deleted"
+    assert messages[1]["type"] == "call"
+    assert messages[1]["call_kind"] == "voice"
+    assert messages[1]["call_status"] == "missed"
+    assert messages[2]["type"] == "view_once"
+    assert messages[3]["type"] == "message"
+    assert messages[3]["edited"] is True
+    assert messages[3]["text"] == "Texto corrigido"

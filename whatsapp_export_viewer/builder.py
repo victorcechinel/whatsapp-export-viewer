@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .i18n import load_translations, normalize_language
-from .media import copy_media
+from .media import copy_media, media_kind
 from .parser import match_message_line, parse_chat_text, read_text_flex, safe_name
 
 MediaMap = dict[str, list[dict[str, Any]]]
@@ -66,6 +66,85 @@ def discover_participants(zip_path: Path) -> list[str]:
     return [name for name, _count in participants.most_common()]
 
 
+def parse_filter_date(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    value = value.strip()
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Invalid date '{value}'. Use DD/MM/YYYY.")
+
+
+def filter_messages_by_date(messages: list[dict[str, Any]], date_from: str | None, date_to: str | None) -> list[dict[str, Any]]:
+    start = parse_filter_date(date_from)
+    end = parse_filter_date(date_to)
+    if start and end and start > end:
+        raise ValueError("Start date must be before or equal to end date.")
+    if not start and not end:
+        return messages
+    filtered: list[dict[str, Any]] = []
+    for message in messages:
+        if not message.get("datetime"):
+            continue
+        current = datetime.fromisoformat(message["datetime"])
+        current_day = datetime(current.year, current.month, current.day)
+        if start and current_day < start:
+            continue
+        if end and current_day > end:
+            continue
+        filtered.append(message)
+    return filtered
+
+
+def original_text_from_messages(messages: list[dict[str, Any]]) -> str:
+    lines = []
+    for message in messages:
+        prefix = f"{message.get('date', '')} {message.get('time', '')}"
+        sender = f" - {message['sender']}:" if message.get("sender") else " -"
+        text = message.get("text", "")
+        refs = " ".join(f"<attached: {ref}>" for ref in message.get("attachment_refs", []))
+        body = " ".join(part for part in (text, refs) if part).strip()
+        lines.append(f"{prefix}{sender} {body}".rstrip())
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
+def inspect_export(zip_path: Path) -> dict[str, Any]:
+    zip_path = zip_path.expanduser()
+    if not zip_path.exists():
+        raise FileNotFoundError(f"ZIP not found: {zip_path}")
+    with tempfile.TemporaryDirectory() as tmp:
+        extracted = Path(tmp) / "extract"
+        extracted.mkdir()
+        safe_extract_zip(zip_path, extracted)
+        chat_file = find_chat_file(extracted)
+        messages = parse_chat_text(read_text_flex(chat_file))
+        media = Counter()
+        for item in extracted.rglob("*"):
+            if item.is_file() and item != chat_file:
+                kind = media_kind(item)
+                if kind:
+                    media[kind] += 1
+    participants = Counter(message["sender"] for message in messages if message.get("sender"))
+    dates = [message["date"] for message in messages if message.get("date")]
+    events = Counter(message["type"] for message in messages if message.get("type") not in {"message", "system"})
+    return {
+        "total_messages": len(messages),
+        "first_date": dates[0] if dates else "",
+        "last_date": dates[-1] if dates else "",
+        "participants": [name for name, _count in participants.most_common()],
+        "media": {
+            "images": media.get("images", 0),
+            "videos": media.get("videos", 0),
+            "audios": media.get("audios", 0),
+            "documents": media.get("documents", 0),
+        },
+        "events": dict(events),
+    }
+
+
 def attach_media(messages: list[dict[str, Any]], media_map: MediaMap, owner: str | None) -> None:
     for message in messages:
         message["side"] = "out" if owner and message.get("sender") == owner else "in"
@@ -73,17 +152,30 @@ def attach_media(messages: list[dict[str, Any]], media_map: MediaMap, owner: str
             message["side"] = "system"
         seen: set[str] = set()
         for ref in message.get("attachment_refs", []):
+            found = False
             for attachment in media_map.get(safe_name(ref), []):
                 if attachment["path"] in seen:
                     continue
                 message["attachments"].append(attachment)
                 seen.add(attachment["path"])
+                found = True
+            if not found:
+                message.setdefault("missing_attachments", []).append(safe_name(ref))
 
 
-def summarize(messages: list[dict[str, Any]], media_map: MediaMap) -> dict[str, Any]:
+def summarize(messages: list[dict[str, Any]], media_map: MediaMap | None = None) -> dict[str, Any]:
     participants = Counter(m["sender"] for m in messages if m.get("sender"))
-    media = Counter(item["kind"] for items in media_map.values() for item in items)
+    seen_media: set[str] = set()
+    media = Counter()
+    for message in messages:
+        for attachment in message.get("attachments", []):
+            path = attachment["path"]
+            if path in seen_media:
+                continue
+            seen_media.add(path)
+            media[attachment["kind"]] += 1
     dates = Counter(m["date"] for m in messages if m.get("date"))
+    events = Counter(m["type"] for m in messages if m.get("type") not in {"message", "system"})
     sorted_dates = sorted(dates.items(), key=lambda item: datetime.strptime(item[0], "%d/%m/%Y"))
     return {
         "total_messages": len(messages),
@@ -94,6 +186,7 @@ def summarize(messages: list[dict[str, Any]], media_map: MediaMap) -> dict[str, 
             "audios": media.get("audios", 0),
             "documents": media.get("documents", 0),
         },
+        "events": dict(events),
         "dates": dict(sorted_dates),
     }
 
@@ -135,6 +228,9 @@ def build_export(
     output: Path,
     owner: str | None = None,
     language: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    progress_callback: Any | None = None,
 ) -> None:
     zip_path = zip_path.expanduser()
     if not zip_path.exists():
@@ -142,25 +238,37 @@ def build_export(
     output = prepare_output_directory(output)
     language = normalize_language(language)
     translations = viewer_translations(language)
+    progress = progress_callback or (lambda _step, _message: None)
 
     with tempfile.TemporaryDirectory() as tmp:
+        progress(1, "progress_extracting")
         extracted = Path(tmp) / "extract"
         extracted.mkdir()
         safe_extract_zip(zip_path, extracted)
+        progress(2, "progress_reading")
         chat_file = find_chat_file(extracted)
         original_dir = output / "original"
         original_dir.mkdir(parents=True)
         original_chat = original_dir / "chat.txt"
-        original_chat.write_text(read_text_flex(chat_file), encoding="utf-8")
-
-        messages = parse_chat_text(original_chat.read_text(encoding="utf-8"))
-        media_map = copy_media(extracted, output, chat_file)
+        raw_chat_text = read_text_flex(chat_file)
+        messages = parse_chat_text(raw_chat_text)
+        messages = filter_messages_by_date(messages, date_from, date_to)
+        original_chat.write_text(original_text_from_messages(messages) if (date_from or date_to) else raw_chat_text, encoding="utf-8")
+        progress(3, "progress_copying_media")
+        allowed_names = {safe_name(ref) for message in messages for ref in message.get("attachment_refs", [])} if (date_from or date_to) else None
+        media_map = copy_media(extracted, output, chat_file, allowed_names=allowed_names)
         attach_media(messages, media_map, owner)
         summary = summarize(messages, media_map)
+        summary["date_range"] = {
+            "from": date_from or "",
+            "to": date_to or "",
+        }
 
+    progress(4, "progress_writing_viewer")
     (output / "data").mkdir(parents=True, exist_ok=True)
     (output / "data" / "messages.json").write_text(json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "data" / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "data" / "translations.json").write_text(json.dumps(translations, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "data" / "bootstrap.js").write_text(js_data_literal(messages, summary, translations), encoding="utf-8")
     write_static_files(output, messages, summary, translations)
+    progress(5, "progress_done")

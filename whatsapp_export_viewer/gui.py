@@ -7,7 +7,7 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from .builder import build_export, discover_participants
+from .builder import build_export, inspect_export
 from .i18n import SUPPORTED_LANGUAGES, load_translations, normalize_language, system_language
 
 tk = None
@@ -40,13 +40,20 @@ class ViewerApp:
         self.zip_path = tk.StringVar()
         self.output_path = tk.StringVar()
         self.owner = tk.StringVar()
+        self.date_from = tk.StringVar()
+        self.date_to = tk.StringVar()
+        self.auto_open = tk.BooleanVar(value=False)
         self.status = tk.StringVar(value=self.text["ready"])
+        self.preview = tk.StringVar(value="")
+        self.progress = tk.IntVar(value=0)
         self.generated_index: Path | None = None
         self.generated_current_page = False
         self.build_ui()
         self.zip_path.trace_add("write", lambda *_args: self.mark_inputs_changed())
         self.output_path.trace_add("write", lambda *_args: self.mark_inputs_changed())
         self.owner.trace_add("write", lambda *_args: self.mark_inputs_changed())
+        self.date_from.trace_add("write", lambda *_args: self.mark_inputs_changed())
+        self.date_to.trace_add("write", lambda *_args: self.mark_inputs_changed())
         self.update_generate_state()
 
     def tr(self, key: str) -> str:
@@ -54,8 +61,8 @@ class ViewerApp:
 
     def build_ui(self) -> None:
         self.root.title(self.tr("app_title"))
-        self.root.geometry("720x420")
-        self.root.minsize(620, 360)
+        self.root.geometry("760x560")
+        self.root.minsize(680, 480)
 
         frame = ttk.Frame(self.root, padding=18)
         frame.pack(fill=tk.BOTH, expand=True)
@@ -91,6 +98,30 @@ class ViewerApp:
         self.owner_box = ttk.Combobox(frame, textvariable=self.owner, values=[], state="disabled")
         self.owner_box.grid(row=row, column=1, columnspan=2, sticky=tk.EW, pady=6)
         self.owner_box.bind("<<ComboboxSelected>>", lambda _event: self.update_generate_state())
+        row += 1
+
+        self.labels["date_from"] = ttk.Label(frame, text=self.tr("date_from"))
+        self.labels["date_from"].grid(row=row, column=0, sticky=tk.W, pady=6)
+        ttk.Entry(frame, textvariable=self.date_from).grid(row=row, column=1, sticky=tk.EW, pady=6)
+        ttk.Label(frame, text="DD/MM/YYYY").grid(row=row, column=2, sticky=tk.W, padx=(8, 0), pady=6)
+        row += 1
+
+        self.labels["date_to"] = ttk.Label(frame, text=self.tr("date_to"))
+        self.labels["date_to"].grid(row=row, column=0, sticky=tk.W, pady=6)
+        ttk.Entry(frame, textvariable=self.date_to).grid(row=row, column=1, sticky=tk.EW, pady=6)
+        ttk.Label(frame, text="DD/MM/YYYY").grid(row=row, column=2, sticky=tk.W, padx=(8, 0), pady=6)
+        row += 1
+
+        self.check_auto_open = ttk.Checkbutton(frame, text=self.tr("auto_open"), variable=self.auto_open)
+        self.check_auto_open.grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=6)
+        row += 1
+
+        self.preview_label = ttk.Label(frame, textvariable=self.preview, justify=tk.LEFT, wraplength=680)
+        self.preview_label.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(6, 2))
+        row += 1
+
+        self.progress_bar = ttk.Progressbar(frame, variable=self.progress, maximum=5, mode="determinate")
+        self.progress_bar.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(8, 6))
         row += 1
 
         actions = ttk.Frame(frame)
@@ -130,6 +161,7 @@ class ViewerApp:
             label.configure(text=self.tr(key))
         for key, button in self.buttons.items():
             button.configure(text=self.tr(key))
+        self.check_auto_open.configure(text=self.tr("auto_open"))
         if self.status.get() in {"Ready.", "Pronto.", "Listo."}:
             self.status.set(self.tr("ready"))
         self.generated_current_page = False
@@ -142,10 +174,12 @@ class ViewerApp:
         if path:
             self.zip_path.set(path)
             self.owner.set("")
+            self.preview.set("")
+            self.progress.set(0)
             self.generated_index = None
             self.hide_generated_actions()
             self.owner_box.configure(values=[], state="disabled")
-            self.status.set(self.tr("loading_participants"))
+            self.status.set(self.tr("loading_preview"))
             if not self.output_path.get():
                 self.output_path.set(str(Path(path).with_suffix("")))
             thread = threading.Thread(target=self._load_participants_worker, args=(Path(path),), daemon=True)
@@ -153,16 +187,31 @@ class ViewerApp:
 
     def _load_participants_worker(self, zip_path: Path) -> None:
         try:
-            participants = discover_participants(zip_path)
+            preview = inspect_export(zip_path)
         except Exception as exc:  # pragma: no cover - UI surface
             self.root.after(0, lambda: self._participants_failed(exc))
             return
-        self.root.after(0, lambda: self._participants_loaded(zip_path, participants))
+        self.root.after(0, lambda: self._participants_loaded(zip_path, preview))
 
-    def _participants_loaded(self, zip_path: Path, participants: list[str]) -> None:
+    def _participants_loaded(self, zip_path: Path, preview: dict[str, object]) -> None:
         if Path(self.zip_path.get()) != zip_path:
             return
+        participants = list(preview.get("participants", []))
         self.owner_box.configure(values=participants, state="readonly" if participants else "disabled")
+        media = preview.get("media", {})
+        media_counts = media if isinstance(media, dict) else {}
+        self.preview.set(
+            self.tr("preview_template").format(
+                total=preview.get("total_messages", 0),
+                first=preview.get("first_date", "-") or "-",
+                last=preview.get("last_date", "-") or "-",
+                participants=len(participants),
+                images=media_counts.get("images", 0),
+                videos=media_counts.get("videos", 0),
+                audios=media_counts.get("audios", 0),
+                documents=media_counts.get("documents", 0),
+            )
+        )
         if participants:
             self.status.set(self.tr("select_owner"))
         else:
@@ -180,6 +229,7 @@ class ViewerApp:
         path = filedialog.askdirectory()
         if path:
             self.output_path.set(path)
+            self.progress.set(0)
             self.generated_index = None
             self.hide_generated_actions()
 
@@ -194,9 +244,17 @@ class ViewerApp:
             messagebox.showwarning(self.tr("app_title"), self.tr("missing_owner"))
             return
         self.buttons["generate"].configure(state=tk.DISABLED)
+        self.progress.set(0)
         self.status.set(self.tr("generate") + "...")
         thread = threading.Thread(target=self._generate_worker, daemon=True)
         thread.start()
+
+    def _progress(self, step: int, message: str) -> None:
+        self.root.after(0, lambda: self._set_progress(step, message))
+
+    def _set_progress(self, step: int, message: str) -> None:
+        self.progress.set(step)
+        self.status.set(self.tr("progress_template").format(step=step, total=5, message=self.tr(message)))
 
     def _generate_worker(self) -> None:
         try:
@@ -205,6 +263,9 @@ class ViewerApp:
                 Path(self.output_path.get()),
                 owner=self.owner.get() or None,
                 language=self.language.get(),
+                date_from=self.date_from.get() or None,
+                date_to=self.date_to.get() or None,
+                progress_callback=self._progress,
             )
         except Exception as exc:  # pragma: no cover - UI surface
             self.root.after(0, lambda: self._generation_failed(exc))
@@ -214,13 +275,17 @@ class ViewerApp:
     def _generation_succeeded(self) -> None:
         self.generated_index = Path(self.output_path.get()).expanduser() / "index.html"
         self.generated_current_page = True
+        self.progress.set(5)
         self.show_generated_actions()
         self.status.set(self.tr("success"))
         self.update_generate_state()
+        if self.auto_open.get():
+            self.open_browser()
 
     def _generation_failed(self, exc: Exception) -> None:
         self.generated_index = None
         self.generated_current_page = False
+        self.progress.set(0)
         self.hide_generated_actions()
         self.status.set(f"{self.tr('error')}: {exc}")
         messagebox.showerror(self.tr("app_title"), f"{self.tr('error')}:\n{exc}")

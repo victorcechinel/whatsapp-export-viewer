@@ -104,10 +104,14 @@ Check:
 - language selection
 - ZIP picker
 - participant list loading after ZIP selection
+- chat preview after ZIP selection
 - output folder picker
+- optional date range fields in `DD/MM/YYYY`
 - owner field stays disabled until participants are loaded
 - generate button stays disabled until ZIP, output folder, and owner are set
 - open-in-browser button stays disabled until generation succeeds
+- progress bar during generation
+- automatic browser opening when selected
 - automatic audio conversion when FFmpeg is available
 - separated output folder structure for large chats
 - generated output folder

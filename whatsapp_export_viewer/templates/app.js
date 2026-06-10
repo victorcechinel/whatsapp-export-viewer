@@ -1,5 +1,5 @@
 let messages = [], summary = {}, translations = {}, filtered = [], rendered = 0, lastDate = "", view = "chat", mediaKind = "";
-let selectedParticipant = "";
+let selectedParticipant = "", selectedType = "all", currentResult = -1;
 const pageSize = 140;
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[char]));
@@ -19,7 +19,31 @@ const fallbackTranslations = {
   viewer_at: "at",
   viewer_system: "System",
   viewer_enlarged_image: "Enlarged image",
+  viewer_all_types: "All types",
+  viewer_type_messages: "Messages",
+  viewer_type_media: "Media",
+  viewer_type_events: "Events",
+  viewer_type_deleted: "Deleted messages",
+  viewer_type_calls: "Calls",
+  viewer_type_view_once: "View once",
+  viewer_call_voice: "Voice call",
+  viewer_call_video: "Video call",
+  viewer_call_missed: "missed",
+  viewer_call_completed: "completed",
+  viewer_deleted_message: "Deleted message",
+  viewer_view_once_message: "View once media",
+  viewer_edited: "edited",
+  viewer_missing_attachment: "Attachment not found in the export: {name}",
 };
+const typeOptions = [
+  ["all", "viewer_all_types"],
+  ["messages", "viewer_type_messages"],
+  ["media", "viewer_type_media"],
+  ["events", "viewer_type_events"],
+  ["deleted", "viewer_type_deleted"],
+  ["calls", "viewer_type_calls"],
+  ["view_once", "viewer_type_view_once"],
+];
 const t = (key, values = {}) => String((translations && translations[key]) || fallbackTranslations[key] || key).replace(/\{(\w+)\}/g, (_match, name) => values[name] ?? "");
 
 async function load() {
@@ -48,20 +72,61 @@ function hydrate() {
     `<button type="button" role="option" aria-selected="true" data-participant="">${esc(t("viewer_all_participants"))}</button>`,
     ...Object.keys(summary.participants || {}).map((name) => `<button type="button" role="option" aria-selected="false" data-participant="${esc(name)}">${esc(name)}</button>`),
   ].join("");
+  $("#typeOptions").innerHTML = typeOptions.map(([value, label], index) => `<button type="button" role="option" aria-selected="${index === 0}" data-type="${value}">${esc(t(label))}</button>`).join("");
   $("#participants").innerHTML = Object.entries(summary.participants || {}).map(([name, count]) => `<button class="pill" data-part="${esc(name)}"><span>${esc(name)}</span><b>${count}</b></button>`).join("");
   $("#dates").innerHTML = Object.entries(summary.dates || {}).map(([date, count]) => `<button class="pill" data-date="${esc(date)}"><span>${esc(date)}</span><b>${count}</b></button>`).join("");
   setActiveMedia("");
 }
 
+function parseDateInput(value) {
+  const text = value.trim();
+  if (!text) return null;
+  const matched = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!matched) return null;
+  return new Date(Number(matched[3]), Number(matched[2]) - 1, Number(matched[1]));
+}
+
+function messageDay(message) {
+  if (!message.date) return null;
+  return parseDateInput(message.date);
+}
+
+function matchesDateRange(message) {
+  const current = messageDay(message);
+  if (!current) return true;
+  const from = parseDateInput($("#dateFrom").value);
+  const to = parseDateInput($("#dateTo").value);
+  if (from && current < from) return false;
+  if (to && current > to) return false;
+  return true;
+}
+
+function matchesType(message) {
+  if (selectedType === "all") return true;
+  if (selectedType === "messages") return message.type === "message";
+  if (selectedType === "media") return (message.attachments || []).length > 0 || (message.missing_attachments || []).length > 0;
+  if (selectedType === "events") return !["message", "system"].includes(message.type);
+  if (selectedType === "deleted") return message.type === "deleted";
+  if (selectedType === "calls") return message.type === "call";
+  if (selectedType === "view_once") return message.type === "view_once";
+  return true;
+}
+
 function matchesQuery(message, query) {
   if (!query) return true;
-  const haystack = [message.text, message.sender, ...(message.attachments || []).map((attachment) => attachment.name)].join(" ").toLowerCase();
+  const haystack = [message.text, message.sender, message.type, ...(message.attachments || []).map((attachment) => attachment.name), ...(message.missing_attachments || [])].join(" ").toLowerCase();
   return haystack.includes(query);
 }
 
 function applyFilters() {
   const query = $("#search").value.trim().toLowerCase();
-  filtered = messages.filter((message) => (!selectedParticipant || message.sender === selectedParticipant) && matchesQuery(message, query));
+  filtered = messages.filter((message) => (
+    (!selectedParticipant || message.sender === selectedParticipant) &&
+    matchesType(message) &&
+    matchesDateRange(message) &&
+    matchesQuery(message, query)
+  ));
+  currentResult = -1;
   if (view === "chat") renderChat();
   else renderMedia();
 }
@@ -73,19 +138,36 @@ function setParticipant(name) {
   document.querySelectorAll("#participantOptions [data-participant]").forEach((option) => {
     option.setAttribute("aria-selected", String(option.dataset.participant === selectedParticipant));
   });
-  closeParticipantDropdown();
+  closeDropdown("participant");
   applyFilters();
 }
 
-function toggleParticipantDropdown() {
-  const dropdown = $("#participantDropdown");
-  const open = dropdown.classList.toggle("open");
-  $("#participantButton").setAttribute("aria-expanded", String(open));
+function setType(value) {
+  selectedType = value || "all";
+  const selected = typeOptions.find(([optionValue]) => optionValue === selectedType);
+  $("#typeDropdown").dataset.value = selectedType;
+  $("#typeButton").textContent = selected ? t(selected[1]) : t("viewer_all_types");
+  document.querySelectorAll("#typeOptions [data-type]").forEach((option) => {
+    option.setAttribute("aria-selected", String(option.dataset.type === selectedType));
+  });
+  closeDropdown("type");
+  applyFilters();
 }
 
-function closeParticipantDropdown() {
-  $("#participantDropdown").classList.remove("open");
-  $("#participantButton").setAttribute("aria-expanded", "false");
+function toggleDropdown(name) {
+  const dropdown = $(`#${name}Dropdown`);
+  const open = dropdown.classList.toggle("open");
+  $(`#${name}Button`).setAttribute("aria-expanded", String(open));
+}
+
+function closeDropdown(name) {
+  $(`#${name}Dropdown`).classList.remove("open");
+  $(`#${name}Button`).setAttribute("aria-expanded", "false");
+}
+
+function closeAllDropdowns() {
+  closeDropdown("participant");
+  closeDropdown("type");
 }
 
 function setTopbar(title, shown) {
@@ -162,13 +244,35 @@ function renderUntilDate(date) {
   }
 }
 
+function highlightText(value) {
+  const query = $("#search").value.trim();
+  const safe = esc(value);
+  if (!query) return safe;
+  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return safe.replace(new RegExp(`(${escapedQuery})`, "gi"), "<mark>$1</mark>");
+}
+
+function eventLabel(message) {
+  if (message.type === "deleted") return t("viewer_deleted_message");
+  if (message.type === "view_once") return t("viewer_view_once_message");
+  if (message.type === "call") {
+    const kind = t(message.call_kind === "video" ? "viewer_call_video" : "viewer_call_voice");
+    const status = t(message.call_status === "missed" ? "viewer_call_missed" : "viewer_call_completed");
+    return `${kind} · ${status}`;
+  }
+  return message.text || t("viewer_system");
+}
+
 function messageHtml(message) {
   const sender = message.sender ? `<div class="sender">${esc(message.sender)}</div>` : "";
   const text = (message.text || "").trim();
-  const textHtml = text ? `<div class="text">${esc(text)}</div>` : "";
+  const event = !["message"].includes(message.type);
+  const textHtml = event ? `<div class="event-text">${esc(eventLabel(message))}</div>` : (text ? `<div class="text">${highlightText(text)}</div>` : "");
+  const edited = message.edited ? `<span class="edited">${esc(t("viewer_edited"))}</span>` : "";
+  const missing = (message.missing_attachments || []).map((name) => `<div class="missing">${esc(t("viewer_missing_attachment", { name }))}</div>`).join("");
   const attachments = (message.attachments || []).map(attachmentHtml).join("");
   const only = !text && attachments;
-  return `<div class="msg ${message.side || "in"}" data-id="${message.id}"><div class="bubble ${only ? "attachment-only" : ""}">${sender}${textHtml}${attachments}<div class="meta">${esc(message.time || "")}</div></div></div>`;
+  return `<div class="msg ${message.side || "in"} ${event ? `event ${esc(message.type)}` : ""}" data-id="${message.id}"><div class="bubble ${only ? "attachment-only" : ""}">${sender}${textHtml}${attachments}${missing}<div class="meta">${edited}${esc(message.time || "")}</div></div></div>`;
 }
 
 function isPdf(attachment) {
@@ -229,13 +333,32 @@ function mediaCard({ message, attachment }) {
   return `<article class="media-card ${esc(message.side || "in")}">${preview}<div class="media-info"><strong>${esc(message.sender || t("viewer_system"))}</strong><span>${esc(message.date)} ${esc(t("viewer_at"))} ${esc(message.time || "")}</span><span>${esc(attachment.name)}</span></div></article>`;
 }
 
+function renderedSearchResults() {
+  return Array.from(document.querySelectorAll(".msg mark")).map((mark) => mark.closest(".msg")).filter(Boolean);
+}
+
+function goToResult(direction) {
+  if (view !== "chat") showChat();
+  while (rendered < filtered.length) renderMore();
+  const results = renderedSearchResults();
+  if (!results.length) return;
+  currentResult = (currentResult + direction + results.length) % results.length;
+  document.querySelectorAll(".msg.current-result").forEach((item) => item.classList.remove("current-result"));
+  results[currentResult].classList.add("current-result");
+  results[currentResult].scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 document.addEventListener("input", (event) => {
-  if (event.target.matches("#search")) applyFilters();
+  if (event.target.matches("#search, #dateFrom, #dateTo")) applyFilters();
 });
 
 document.addEventListener("click", (event) => {
   if (event.target.matches("#participantButton")) {
-    toggleParticipantDropdown();
+    toggleDropdown("participant");
+    return;
+  }
+  if (event.target.matches("#typeButton")) {
+    toggleDropdown("type");
     return;
   }
   const participantOption = event.target.closest("#participantOptions [data-participant]");
@@ -243,12 +366,16 @@ document.addEventListener("click", (event) => {
     setParticipant(participantOption.dataset.participant);
     return;
   }
-  if (!event.target.closest("#participantDropdown")) closeParticipantDropdown();
+  const typeOption = event.target.closest("#typeOptions [data-type]");
+  if (typeOption) {
+    setType(typeOption.dataset.type);
+    return;
+  }
+  if (!event.target.closest(".custom-select")) closeAllDropdowns();
 
   const participant = event.target.closest("[data-part]");
-  if (participant) {
-    setParticipant(participant.dataset.part);
-  }
+  if (participant) setParticipant(participant.dataset.part);
+
   const date = event.target.closest("[data-date]");
   if (date) {
     renderUntilDate(date.dataset.date);
@@ -266,6 +393,12 @@ document.addEventListener("click", (event) => {
     scrollChatToBottom();
   }
   if (event.target.matches("#backToChat")) showChat();
+  if (event.target.matches("#prevResult")) goToResult(-1);
+  if (event.target.matches("#nextResult")) goToResult(1);
+  if (event.target.matches("#compactMode")) {
+    document.body.classList.toggle("compact");
+    event.target.setAttribute("aria-pressed", String(document.body.classList.contains("compact")));
+  }
   const stat = event.target.closest(".stats .stat");
   if (stat?.dataset.view === "chat") showChat();
   if (stat?.dataset.kind) showMediaView(stat.dataset.kind);

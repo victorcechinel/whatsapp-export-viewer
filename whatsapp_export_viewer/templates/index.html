@@ -14,11 +14,24 @@
         <p>{{viewer_tagline}}</p>
       </header>
       <section class="controls">
-        <input id="search" type="search" placeholder="{{viewer_search_placeholder}}">
+        <div class="search-row">
+          <input id="search" type="search" placeholder="{{viewer_search_placeholder}}">
+          <button id="prevResult" class="icon-button" type="button" title="{{viewer_previous_result}}">‹</button>
+          <button id="nextResult" class="icon-button" type="button" title="{{viewer_next_result}}">›</button>
+        </div>
+        <div id="typeDropdown" class="custom-select" data-value="all">
+          <button id="typeButton" type="button" aria-haspopup="listbox" aria-expanded="false">{{viewer_all_types}}</button>
+          <div id="typeOptions" class="custom-options" role="listbox"></div>
+        </div>
         <div id="participantDropdown" class="custom-select" data-value="">
           <button id="participantButton" type="button" aria-haspopup="listbox" aria-expanded="false">{{viewer_all_participants}}</button>
           <div id="participantOptions" class="custom-options" role="listbox"></div>
         </div>
+        <div class="date-filters">
+          <input id="dateFrom" type="text" inputmode="numeric" placeholder="{{viewer_from_date}}">
+          <input id="dateTo" type="text" inputmode="numeric" placeholder="{{viewer_to_date}}">
+        </div>
+        <button id="compactMode" class="toggle" type="button" aria-pressed="false">{{viewer_compact_mode}}</button>
       </section>
       <section class="stats">
         <button class="stat active" type="button" data-view="chat"><b id="total">0</b><span>{{viewer_messages}}</span></button>

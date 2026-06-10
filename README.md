@@ -43,9 +43,11 @@ Each desktop package includes:
 - 🧠 Automatically detects the conversation `.txt`
 - 💬 Renders a WhatsApp Web-inspired chat view
 - 🔎 Searches messages, senders, and attachment names
-- 🧑 Filters by participant
-- 📅 Navigates by date
+- 🧑 Filters by participant, message type, and date range
+- 📅 Navigates by date and supports partial exports by period
+- 📌 Highlights search results with previous/next navigation
 - 🖼️ Shows media galleries for images, videos, audio, and documents
+- ☎️ Renders calls, missed calls, deleted messages, edited messages, view-once media, and missing attachments as special states
 - 🎨 Keeps participant colors consistent between chat bubbles and gallery cards
 - 🎧 Converts WhatsApp `.opus` audio to `.mp3` automatically in packaged desktop releases
 - 📄 Opens PDFs in a new browser tab
@@ -61,8 +63,9 @@ Each desktop package includes:
 5. Wait for the participant list to load from the ZIP.
 6. Choose your name in the chat.
 7. Choose an output folder.
-8. Pick the language.
-9. Generate the viewer, then open the generated folder or launch `index.html` in your browser from the app.
+8. Pick the language and optionally set `From date` / `To date` in `DD/MM/YYYY` format.
+9. Review the preview with message dates, participants, and media totals.
+10. Generate the viewer, then open the generated folder or launch `index.html` in your browser from the app.
 
 The graphical app currently supports English, Portuguese, and Spanish. The language can be changed inside the app.
 
@@ -80,7 +83,9 @@ Convert a chat:
 whatsapp-export-viewer "WhatsApp Chat.zip" \
   --output conversa-html \
   --owner "Your Name" \
-  --language pt-BR
+  --language pt-BR \
+  --date-from 01/06/2026 \
+  --date-to 30/06/2026
 ```
 
 Useful options:
@@ -90,6 +95,8 @@ Useful options:
 | `--output`, `-o` | Output folder for the static website |
 | `--owner "Name"` | Participant rendered as “me”, aligned right |
 | `--language en|pt-BR|es` | Language used by the generated offline viewer |
+| `--date-from DD/MM/YYYY` | Optional first date included in the generated archive |
+| `--date-to DD/MM/YYYY` | Optional last date included in the generated archive |
 | `--version` | Print the installed version |
 
 ## 📁 Generated Folder

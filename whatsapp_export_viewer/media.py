@@ -82,13 +82,15 @@ def audio_duration(path: Path) -> float | None:
         return None
 
 
-def copy_media(extracted: Path, output: Path, chat_file: Path) -> dict[str, list[dict[str, Any]]]:
+def copy_media(extracted: Path, output: Path, chat_file: Path, allowed_names: set[str] | None = None) -> dict[str, list[dict[str, Any]]]:
     media_map: dict[str, list[dict[str, Any]]] = {}
     for directory in ("images", "videos", "audios", "documents"):
         (output / "media" / directory).mkdir(parents=True, exist_ok=True)
 
     for source in extracted.rglob("*"):
         if not source.is_file() or source == chat_file:
+            continue
+        if allowed_names is not None and safe_name(source.name) not in allowed_names:
             continue
         kind = media_kind(source)
         if not kind:

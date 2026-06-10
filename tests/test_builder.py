@@ -3,7 +3,7 @@ import zipfile
 
 import pytest
 
-from whatsapp_export_viewer.builder import build_export, discover_participants, safe_extract_zip
+from whatsapp_export_viewer.builder import build_export, discover_participants, inspect_export, safe_extract_zip
 
 
 def test_builds_offline_export_with_organized_media(tmp_path):
@@ -33,10 +33,16 @@ def test_builds_offline_export_with_organized_media(tmp_path):
     app_js = (output / "assets" / "app.js").read_text(encoding="utf-8")
     index_html = (output / "index.html").read_text(encoding="utf-8")
     assert "showMediaView" in app_js
+    assert "setType" in app_js
+    assert "eventLabel" in app_js
+    assert "goToResult" in app_js
     assert "media-card ${esc(message.side" in app_js
     assert "Voltar" in index_html
     assert 'data-kind="images"' in index_html
     assert 'id="participantDropdown"' in index_html
+    assert 'id="typeDropdown"' in index_html
+    assert 'id="dateFrom"' in index_html
+    assert 'id="compactMode"' in index_html
     assert '<select id="participant"' not in index_html
     assert 'class="gallery"' not in index_html
     assert "{{" not in index_html
@@ -131,3 +137,52 @@ def test_duplicate_media_names_remain_reachable(tmp_path):
     assert (output / "media" / "images" / "photo.jpg").exists()
     assert (output / "media" / "images" / "photo-2.jpg").exists()
     assert {attachment["stored_name"] for attachment in messages[0]["attachments"]} == {"photo.jpg", "photo-2.jpg"}
+
+
+def test_build_export_filters_messages_by_date_range(tmp_path):
+    zip_path = tmp_path / "WhatsApp Chat.zip"
+    output = tmp_path / "site"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr(
+            "_chat.txt",
+            """09/06/2026 14:35 - Ana: Antes
+10/06/2026 14:36 - Beto: Dentro <attached: dentro.jpg>
+11/06/2026 14:37 - Ana: Depois <attached: depois.jpg>
+""",
+        )
+        archive.writestr("dentro.jpg", b"in")
+        archive.writestr("depois.jpg", b"out")
+
+    build_export(zip_path, output, date_from="10/06/2026", date_to="10/06/2026")
+
+    messages = json.loads((output / "data" / "messages.json").read_text(encoding="utf-8"))
+    summary = json.loads((output / "data" / "summary.json").read_text(encoding="utf-8"))
+    assert [message["text"] for message in messages] == ["Dentro"]
+    assert summary["media"]["images"] == 1
+    assert "Antes" not in (output / "original" / "chat.txt").read_text(encoding="utf-8")
+    assert "Depois" not in (output / "original" / "chat.txt").read_text(encoding="utf-8")
+    assert not (output / "media" / "images" / "depois.jpg").exists()
+    assert summary["date_range"]["from"] == "10/06/2026"
+    assert summary["date_range"]["to"] == "10/06/2026"
+
+
+def test_inspect_export_returns_preview_metadata(tmp_path):
+    zip_path = tmp_path / "WhatsApp Chat.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr(
+            "_chat.txt",
+            """09/06/2026 14:35 - Ana: Oi
+10/06/2026 14:36 - Beto: <attached: foto.jpg>
+10/06/2026 14:37 - Ana: Esta mensagem foi apagada
+""",
+        )
+        archive.writestr("foto.jpg", b"fake")
+
+    preview = inspect_export(zip_path)
+
+    assert preview["total_messages"] == 3
+    assert preview["first_date"] == "09/06/2026"
+    assert preview["last_date"] == "10/06/2026"
+    assert preview["participants"] == ["Ana", "Beto"]
+    assert preview["media"]["images"] == 1
+    assert preview["events"]["deleted"] == 1
