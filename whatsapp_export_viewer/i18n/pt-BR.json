@@ -6,8 +6,6 @@
   "output_folder": "Pasta de saída",
   "owner": "Seu nome na conversa",
   "language": "Idioma",
-  "convert_audio": "Converter áudio .opus para .mp3 quando ffmpeg estiver disponível",
-  "self_contained": "Embutir CSS, JavaScript e dados da conversa no index.html (opcional, para conversas pequenas)",
   "generate": "Gerar página",
   "open_output": "Abrir pasta gerada",
   "open_browser": "Abrir no navegador",

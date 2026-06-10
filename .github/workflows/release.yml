@@ -3,7 +3,6 @@ name: Release
 on:
   push:
     branches: ["main"]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -104,7 +103,16 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk tk-dev
+          sudo apt-get install -y python3-tk tk-dev ffmpeg
+
+      - name: Install macOS FFmpeg
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
+      - name: Install Windows FFmpeg
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install ffmpeg -y
 
       - name: Install build tooling
         run: python -m pip install -e ".[dev]"
@@ -113,10 +121,10 @@ jobs:
         run: pytest
 
       - name: Build CLI executable
-        run: python -m PyInstaller --onefile --name whatsapp-export-viewer --collect-data whatsapp_export_viewer scripts/whatsapp-export-viewer.py
+        run: python scripts/build_binary.py cli --require-ffmpeg
 
       - name: Build GUI executable
-        run: python -m PyInstaller --onefile --name whatsapp-export-viewer-gui --collect-data whatsapp_export_viewer --hidden-import tkinter --hidden-import tkinter.filedialog --hidden-import tkinter.messagebox --hidden-import tkinter.ttk scripts/whatsapp-export-viewer-gui.py
+        run: python scripts/build_binary.py gui --require-ffmpeg
 
       - name: Prepare Windows package
         if: matrix.archive == 'zip'

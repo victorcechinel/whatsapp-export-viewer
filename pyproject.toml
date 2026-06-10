@@ -60,6 +60,7 @@ packages = ["whatsapp_export_viewer"]
 [tool.hatch.build.targets.sdist]
 include = [
   "whatsapp_export_viewer",
+  "scripts",
   "docs",
   "tests",
   "README.md",

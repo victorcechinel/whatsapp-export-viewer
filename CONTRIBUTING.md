@@ -108,15 +108,15 @@ Check:
 - owner field stays disabled until participants are loaded
 - generate button stays disabled until ZIP, output folder, and owner are set
 - open-in-browser button stays disabled until generation succeeds
-- audio conversion checkbox
-- self-contained option remains optional; the default separated output is preferred for large chats
+- automatic audio conversion when FFmpeg is available
+- separated output folder structure for large chats
 - generated output folder
 
 If you changed release packaging, also test:
 
 ```bash
-pyinstaller --onefile --name whatsapp-export-viewer --collect-data whatsapp_export_viewer scripts/whatsapp-export-viewer.py
-pyinstaller --onefile --name whatsapp-export-viewer-gui --collect-data whatsapp_export_viewer --hidden-import tkinter --hidden-import tkinter.filedialog --hidden-import tkinter.messagebox --hidden-import tkinter.ttk scripts/whatsapp-export-viewer-gui.py
+python scripts/build_binary.py cli
+python scripts/build_binary.py gui
 ```
 
 Then run the generated binaries:

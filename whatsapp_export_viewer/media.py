@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -40,11 +41,24 @@ def unique_destination(directory: Path, filename: str) -> Path:
         counter += 1
 
 
+def bundled_tool(name: str) -> str | None:
+    executable = f"{name}.exe" if sys.platform.startswith("win") else name
+    candidates = [
+        Path(getattr(sys, "_MEIPASS", "")) / executable,
+        Path(sys.executable).resolve().parent / executable,
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    return shutil.which(executable) or shutil.which(name)
+
+
 def convert_opus_to_mp3(source: Path, destination: Path) -> bool:
-    if not shutil.which("ffmpeg"):
+    ffmpeg = bundled_tool("ffmpeg")
+    if not ffmpeg:
         return False
     result = subprocess.run(
-        ["ffmpeg", "-y", "-i", str(source), "-vn", "-codec:a", "libmp3lame", "-q:a", "4", str(destination)],
+        [ffmpeg, "-y", "-i", str(source), "-vn", "-codec:a", "libmp3lame", "-q:a", "4", str(destination)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=False,
@@ -53,10 +67,11 @@ def convert_opus_to_mp3(source: Path, destination: Path) -> bool:
 
 
 def audio_duration(path: Path) -> float | None:
-    if not shutil.which("ffprobe"):
+    ffprobe = bundled_tool("ffprobe")
+    if not ffprobe:
         return None
     result = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nokey=1:noprint_wrappers=1", str(path)],
+        [ffprobe, "-v", "error", "-show_entries", "format=duration", "-of", "default=nokey=1:noprint_wrappers=1", str(path)],
         capture_output=True,
         text=True,
         check=False,
@@ -67,7 +82,7 @@ def audio_duration(path: Path) -> float | None:
         return None
 
 
-def copy_media(extracted: Path, output: Path, chat_file: Path, convert_audio: bool) -> dict[str, list[dict[str, Any]]]:
+def copy_media(extracted: Path, output: Path, chat_file: Path) -> dict[str, list[dict[str, Any]]]:
     media_map: dict[str, list[dict[str, Any]]] = {}
     for directory in ("images", "videos", "audios", "documents"):
         (output / "media" / directory).mkdir(parents=True, exist_ok=True)
@@ -91,7 +106,7 @@ def copy_media(extracted: Path, output: Path, chat_file: Path, convert_audio: bo
         }
         if kind == "audios":
             info["duration"] = audio_duration(dest)
-            if convert_audio and dest.suffix.lower() == ".opus":
+            if dest.suffix.lower() == ".opus":
                 mp3_dest = unique_destination(output / "media" / "audios", dest.with_suffix(".mp3").name)
                 if convert_opus_to_mp3(dest, mp3_dest):
                     info["mp3_path"] = mp3_dest.relative_to(output).as_posix()

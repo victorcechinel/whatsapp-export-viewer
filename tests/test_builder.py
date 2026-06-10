@@ -20,7 +20,7 @@ def test_builds_offline_export_with_organized_media(tmp_path):
         archive.writestr("IMG-20260610-WA0001.jpg", b"fake-jpg")
         archive.writestr("PTT-20260610-WA0002.opus", b"fake-opus")
 
-    build_export(zip_path, output, owner="Ana", convert_audio=False, self_contained=False, language="pt-BR")
+    build_export(zip_path, output, owner="Ana", language="pt-BR")
 
     assert (output / "index.html").exists()
     assert (output / "assets" / "style.css").exists()
@@ -94,17 +94,18 @@ def test_refuses_non_empty_output_directory(tmp_path):
     assert (output / "keep.txt").read_text(encoding="utf-8") == "do not delete"
 
 
-def test_self_contained_escapes_script_end_tag(tmp_path):
+def test_bootstrap_escapes_script_end_tag(tmp_path):
     zip_path = tmp_path / "WhatsApp Chat.zip"
     output = tmp_path / "site"
     with zipfile.ZipFile(zip_path, "w") as archive:
         archive.writestr("_chat.txt", "10/06/2026 14:35 - Ana: </script><script>alert(1)</script>\n")
 
-    build_export(zip_path, output, self_contained=True, language="es")
+    build_export(zip_path, output, language="es")
 
+    bootstrap = (output / "data" / "bootstrap.js").read_text(encoding="utf-8")
+    assert "\\u003c/script>" in bootstrap
+    assert "</script><script>alert(1)" not in bootstrap
     html = (output / "index.html").read_text(encoding="utf-8")
-    assert "\\u003c/script>" in html
-    assert "</script><script>alert(1)" not in html
     assert "Conversación" in html
     assert "{{" not in html
 

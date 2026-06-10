@@ -47,8 +47,7 @@ Each desktop package includes:
 - 📅 Navigates by date
 - 🖼️ Shows media galleries for images, videos, audio, and documents
 - 🎨 Keeps participant colors consistent between chat bubbles and gallery cards
-- 🎧 Plays `.opus` audio when the browser supports it
-- 🔁 Converts `.opus` to `.mp3` when `ffmpeg` is available
+- 🎧 Converts WhatsApp `.opus` audio to `.mp3` automatically in packaged desktop releases
 - 📄 Opens PDFs in a new browser tab
 - 📴 Generates a static folder that opens from `index.html`
 - 🖥️ Works on Windows, macOS, and Linux
@@ -62,7 +61,7 @@ Each desktop package includes:
 5. Wait for the participant list to load from the ZIP.
 6. Choose your name in the chat.
 7. Choose an output folder.
-8. Pick the language and optional audio conversion.
+8. Pick the language.
 9. Generate the viewer, then open the generated folder or launch `index.html` in your browser from the app.
 
 The graphical app currently supports English, Portuguese, and Spanish. The language can be changed inside the app.
@@ -81,8 +80,7 @@ Convert a chat:
 whatsapp-export-viewer "WhatsApp Chat.zip" \
   --output conversa-html \
   --owner "Your Name" \
-  --language pt-BR \
-  --convert-audio
+  --language pt-BR
 ```
 
 Useful options:
@@ -92,9 +90,6 @@ Useful options:
 | `--output`, `-o` | Output folder for the static website |
 | `--owner "Name"` | Participant rendered as “me”, aligned right |
 | `--language en|pt-BR|es` | Language used by the generated offline viewer |
-| `--convert-audio` | Convert `.opus` to `.mp3` when `ffmpeg` is available |
-| `--no-convert-audio` | Keep original audio files only |
-| `--self-contained` | Inline CSS, JavaScript, and chat data into `index.html`; optional and better for small chats |
 | `--version` | Print the installed version |
 
 ## 📁 Generated Folder
@@ -122,7 +117,7 @@ conversa-html/
 
 You can zip this generated folder and open it later on Windows, macOS, or Linux. Keep the folder structure intact so relative media links continue to work.
 
-The self-contained option only embeds CSS, JavaScript, and chat data into `index.html`. Media files still stay in `media/`, and the separated default remains the best choice for big exports.
+The desktop release packages include FFmpeg and FFprobe. When a WhatsApp `.opus` file is found, the app keeps the original file and also creates an `.mp3` for browser playback.
 
 ## 🪟 Windows
 
@@ -236,8 +231,8 @@ brew install python-tk@3.14
 Build local executables:
 
 ```bash
-pyinstaller --onefile --name whatsapp-export-viewer --collect-data whatsapp_export_viewer scripts/whatsapp-export-viewer.py
-pyinstaller --onefile --name whatsapp-export-viewer-gui --collect-data whatsapp_export_viewer --hidden-import tkinter --hidden-import tkinter.filedialog --hidden-import tkinter.messagebox --hidden-import tkinter.ttk scripts/whatsapp-export-viewer-gui.py
+python scripts/build_binary.py cli
+python scripts/build_binary.py gui
 ```
 
 ## 📜 License

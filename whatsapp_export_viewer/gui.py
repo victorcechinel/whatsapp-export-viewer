@@ -40,8 +40,6 @@ class ViewerApp:
         self.zip_path = tk.StringVar()
         self.output_path = tk.StringVar()
         self.owner = tk.StringVar()
-        self.convert_audio = tk.BooleanVar(value=False)
-        self.self_contained = tk.BooleanVar(value=False)
         self.status = tk.StringVar(value=self.text["ready"])
         self.generated_index: Path | None = None
         self.build_ui()
@@ -94,14 +92,6 @@ class ViewerApp:
         self.owner_box.bind("<<ComboboxSelected>>", lambda _event: self.update_generate_state())
         row += 1
 
-        self.check_convert = ttk.Checkbutton(frame, text=self.tr("convert_audio"), variable=self.convert_audio)
-        self.check_convert.grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=6)
-        row += 1
-
-        self.check_self = ttk.Checkbutton(frame, text=self.tr("self_contained"), variable=self.self_contained)
-        self.check_self.grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=6)
-        row += 1
-
         actions = ttk.Frame(frame)
         actions.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(18, 8))
         self.buttons["generate"] = ttk.Button(actions, text=self.tr("generate"), command=self.generate)
@@ -127,8 +117,6 @@ class ViewerApp:
             label.configure(text=self.tr(key))
         for key, button in self.buttons.items():
             button.configure(text=self.tr(key))
-        self.check_convert.configure(text=self.tr("convert_audio"))
-        self.check_self.configure(text=self.tr("self_contained"))
         if self.status.get() in {"Ready.", "Pronto.", "Listo."}:
             self.status.set(self.tr("ready"))
 
@@ -199,8 +187,6 @@ class ViewerApp:
                 Path(self.zip_path.get()),
                 Path(self.output_path.get()),
                 owner=self.owner.get() or None,
-                convert_audio=self.convert_audio.get(),
-                self_contained=self.self_contained.get(),
                 language=self.language.get(),
             )
         except Exception as exc:  # pragma: no cover - UI surface

@@ -6,8 +6,6 @@
   "output_folder": "Carpeta de salida",
   "owner": "Tu nombre en el chat",
   "language": "Idioma",
-  "convert_audio": "Convertir audio .opus a .mp3 cuando ffmpeg esté disponible",
-  "self_contained": "Incrustar CSS, JavaScript y datos del chat en index.html (opcional, para chats pequeños)",
   "generate": "Generar página",
   "open_output": "Abrir carpeta generada",
   "open_browser": "Abrir en el navegador",

@@ -120,22 +120,10 @@ def template_text(name: str) -> str:
     return resources.files("whatsapp_export_viewer.templates").joinpath(name).read_text(encoding="utf-8")
 
 
-def write_static_files(
-    output: Path,
-    self_contained: bool,
-    messages: list[dict[str, Any]],
-    summary: dict[str, Any],
-    translations: dict[str, str],
-) -> None:
+def write_static_files(output: Path, messages: list[dict[str, Any]], summary: dict[str, Any], translations: dict[str, str]) -> None:
     index = render_html_template(template_text("index.html"), translations)
     css = template_text("style.css")
     app = template_text("app.js")
-    if self_contained:
-        html = index.replace('<link rel="stylesheet" href="assets/style.css">', f"<style>{css}</style>")
-        html = html.replace('<script src="data/bootstrap.js"></script>', f"<script>{js_data_literal(messages, summary, translations)}</script>")
-        html = html.replace('<script src="assets/app.js"></script>', f"<script>{app}</script>")
-        (output / "index.html").write_text(html, encoding="utf-8")
-        return
     (output / "assets").mkdir(parents=True, exist_ok=True)
     (output / "index.html").write_text(index, encoding="utf-8")
     (output / "assets" / "style.css").write_text(css, encoding="utf-8")
@@ -146,8 +134,6 @@ def build_export(
     zip_path: Path,
     output: Path,
     owner: str | None = None,
-    convert_audio: bool = False,
-    self_contained: bool = False,
     language: str | None = None,
 ) -> None:
     zip_path = zip_path.expanduser()
@@ -168,7 +154,7 @@ def build_export(
         original_chat.write_text(read_text_flex(chat_file), encoding="utf-8")
 
         messages = parse_chat_text(original_chat.read_text(encoding="utf-8"))
-        media_map = copy_media(extracted, output, chat_file, convert_audio)
+        media_map = copy_media(extracted, output, chat_file)
         attach_media(messages, media_map, owner)
         summary = summarize(messages, media_map)
 
@@ -177,4 +163,4 @@ def build_export(
     (output / "data" / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "data" / "translations.json").write_text(json.dumps(translations, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "data" / "bootstrap.js").write_text(js_data_literal(messages, summary, translations), encoding="utf-8")
-    write_static_files(output, self_contained, messages, summary, translations)
+    write_static_files(output, messages, summary, translations)
