@@ -61,6 +61,7 @@ Please run:
 
 ```bash
 pytest
+node scripts/validate-docs-site.mjs
 python -m build
 ```
 
@@ -108,7 +109,14 @@ Then run the generated binaries:
 ./dist/whatsapp-export-viewer-gui
 ```
 
-If you changed the GitHub Pages site, open `docs/index.html` locally and test the language selector.
+If you changed the GitHub Pages site, run:
+
+```bash
+node scripts/validate-docs-site.mjs
+python -m http.server 4173 --directory docs
+```
+
+Then open `http://127.0.0.1:4173/` and test the custom language selector in English, Portuguese, and Spanish.
 
 ## 🧪 Test Fixtures
 
@@ -176,8 +184,11 @@ whatsapp_export_viewer/i18n/pt-BR.json
 whatsapp_export_viewer/i18n/es.json
 ```
 
-When changing the project website, update the translations in:
+When changing the project website, update the localized pages and shared scripts in:
 
 ```text
+docs/en/index.html
+docs/pt-BR/index.html
+docs/es/index.html
 docs/site.js
 ```
