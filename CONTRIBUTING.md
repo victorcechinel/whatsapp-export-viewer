@@ -82,7 +82,15 @@ whatsapp-export-viewer /tmp/whatsapp-viewer-sample.zip --output /tmp/whatsapp-vi
 If you are working on the GUI, run:
 
 ```bash
+python -m whatsapp_export_viewer.gui
 whatsapp-export-viewer-gui
+```
+
+With the repository virtual environment, you can also run:
+
+```bash
+.venv/bin/python -m whatsapp_export_viewer.gui
+.venv/bin/whatsapp-export-viewer-gui
 ```
 
 Check:

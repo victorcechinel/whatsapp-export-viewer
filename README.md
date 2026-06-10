@@ -207,6 +207,19 @@ pytest
 python -m build
 ```
 
+Run the GUI from a local checkout:
+
+```bash
+python -m whatsapp_export_viewer.gui
+```
+
+If you use a virtual environment in the repository:
+
+```bash
+.venv/bin/python -m whatsapp_export_viewer.gui
+.venv/bin/whatsapp-export-viewer-gui
+```
+
 Build local executables:
 
 ```bash
