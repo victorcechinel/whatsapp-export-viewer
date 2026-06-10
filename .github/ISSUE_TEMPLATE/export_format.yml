@@ -1,0 +1,31 @@
+name: Export format support
+description: Report an unsupported WhatsApp export format or date pattern.
+title: "fix(parser): "
+labels: ["parser", "compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please provide fictional or anonymized examples only."
+  - type: dropdown
+    id: source
+    attributes:
+      label: Export source
+      options:
+        - Android
+        - iPhone
+        - WhatsApp Desktop
+        - Unknown
+  - type: input
+    id: language
+    attributes:
+      label: Phone/app language
+      placeholder: "pt-BR, en, es..."
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example lines
+      render: text
+      placeholder: "[10/06/2026, 14:35:22] Ana: Hello"
+    validations:
+      required: true
+

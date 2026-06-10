@@ -28,6 +28,22 @@ git switch -c fix/iphone-date-format
 git switch -c feat/dark-theme
 ```
 
+## ✍️ Commit Messages
+
+This repository uses semantic releases from Conventional Commits. Commit messages decide whether a release is created and which version is published.
+
+Use:
+
+```text
+feat: add desktop language selector
+fix: parse attached iPhone audio exports
+docs: add Linux install guide
+ci: deploy GitHub Pages automatically
+test: add fixture for invisible date markers
+```
+
+Breaking changes must include `BREAKING CHANGE:` in the commit body.
+
 ## ✅ Before Opening a PR
 
 Please run:
@@ -41,7 +57,10 @@ If you changed release packaging, also test:
 
 ```bash
 pyinstaller --onefile --name whatsapp-export-viewer --collect-data whatsapp_export_viewer scripts/whatsapp-export-viewer.py
+pyinstaller --onefile --name whatsapp-export-viewer-gui --collect-data whatsapp_export_viewer --hidden-import tkinter --hidden-import tkinter.filedialog --hidden-import tkinter.messagebox --hidden-import tkinter.ttk scripts/whatsapp-export-viewer-gui.py
 ```
+
+If you changed the GitHub Pages site, open `docs/index.html` locally and test the language selector.
 
 ## 🧪 Test Fixtures
 
@@ -83,6 +102,9 @@ Useful areas:
 - internationalization
 - safer media matching
 - app/GUI wrapper
+- GitHub Pages documentation
+- installer improvements
+- i18n coverage
 
 ## 🔐 Privacy Rules
 
@@ -96,3 +118,18 @@ This project should not add:
 
 The generated archive must stay portable and private.
 
+## 🌍 Translations
+
+When changing app text, update:
+
+```text
+whatsapp_export_viewer/i18n/en.json
+whatsapp_export_viewer/i18n/pt-BR.json
+whatsapp_export_viewer/i18n/es.json
+```
+
+When changing the project website, update the translations in:
+
+```text
+docs/site.js
+```

@@ -1,0 +1,19 @@
+{
+  "app_title": "WhatsApp Export Viewer",
+  "choose_zip": "Escolher ZIP do WhatsApp",
+  "choose_output": "Escolher pasta de saída",
+  "zip_file": "Arquivo ZIP",
+  "output_folder": "Pasta de saída",
+  "owner": "Seu nome na conversa",
+  "language": "Idioma",
+  "convert_audio": "Converter áudio .opus para .mp3 quando ffmpeg estiver disponível",
+  "self_contained": "Gerar index.html autocontido",
+  "generate": "Gerar visualizador",
+  "open_output": "Abrir pasta gerada",
+  "ready": "Pronto.",
+  "missing_zip": "Escolha primeiro um arquivo ZIP do WhatsApp.",
+  "missing_output": "Escolha primeiro uma pasta de saída.",
+  "success": "Visualizador gerado com sucesso.",
+  "error": "Algo deu errado"
+}
+

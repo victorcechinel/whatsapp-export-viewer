@@ -14,6 +14,16 @@ from .media import copy_media
 from .parser import match_message_line, parse_chat_text, read_text_flex, safe_name
 
 
+def safe_extract_zip(zip_path: Path, destination: Path) -> None:
+    destination = destination.resolve()
+    with zipfile.ZipFile(zip_path) as archive:
+        for member in archive.infolist():
+            target = (destination / member.filename).resolve()
+            if destination != target and destination not in target.parents:
+                raise ValueError(f"Unsafe ZIP entry blocked: {member.filename}")
+        archive.extractall(destination)
+
+
 def find_chat_file(root: Path) -> Path:
     txt_files = sorted(root.rglob("*.txt"), key=lambda item: item.stat().st_size, reverse=True)
     if not txt_files:
@@ -102,8 +112,7 @@ def build_export(zip_path: Path, output: Path, owner: str | None = None, convert
     with tempfile.TemporaryDirectory() as tmp:
         extracted = Path(tmp) / "extract"
         extracted.mkdir()
-        with zipfile.ZipFile(zip_path) as archive:
-            archive.extractall(extracted)
+        safe_extract_zip(zip_path, extracted)
         chat_file = find_chat_file(extracted)
         original_dir = output / "original"
         original_dir.mkdir(parents=True)
@@ -120,4 +129,3 @@ def build_export(zip_path: Path, output: Path, owner: str | None = None, convert
     (output / "data" / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "data" / "bootstrap.js").write_text(js_data_literal(messages, summary), encoding="utf-8")
     write_static_files(output, self_contained, messages, summary)
-

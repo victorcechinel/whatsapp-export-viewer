@@ -41,16 +41,18 @@ dev = [
   "build>=1.2",
   "pytest>=8.0",
   "pyinstaller>=6.0",
+  "python-semantic-release>=10.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/victorcechinel/whatsapp-export-viewer"
+Homepage = "https://victorcechinel.github.io/whatsapp-export-viewer/"
 Repository = "https://github.com/victorcechinel/whatsapp-export-viewer"
 Issues = "https://github.com/victorcechinel/whatsapp-export-viewer/issues"
 
 [project.scripts]
 whatsapp-export-viewer = "whatsapp_export_viewer.cli:main"
 whatsapp-viewer = "whatsapp_export_viewer.cli:main"
+whatsapp-export-viewer-gui = "whatsapp_export_viewer.gui:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["whatsapp_export_viewer"]
@@ -58,9 +60,11 @@ packages = ["whatsapp_export_viewer"]
 [tool.hatch.build.targets.sdist]
 include = [
   "whatsapp_export_viewer",
+  "docs",
   "tests",
   "README.md",
   "CONTRIBUTING.md",
+  "CHANGELOG.md",
   "LICENSE",
   "pyproject.toml",
 ]
@@ -69,3 +73,27 @@ include = [
 testpaths = ["tests"]
 pythonpath = ["."]
 
+[tool.semantic_release]
+commit_parser = "conventional"
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["whatsapp_export_viewer/__init__.py:__version__"]
+build_command = "python -m pip install build && python -m build"
+tag_format = "v{version}"
+allow_zero_version = true
+major_on_zero = false
+
+[tool.semantic_release.remote]
+type = "github"
+token = { env = "GH_TOKEN" }
+
+[tool.semantic_release.changelog]
+mode = "update"
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+output_format = "md"
+mask_initial_release = true
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false

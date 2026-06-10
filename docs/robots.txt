@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://victorcechinel.github.io/whatsapp-export-viewer/sitemap.xml
+

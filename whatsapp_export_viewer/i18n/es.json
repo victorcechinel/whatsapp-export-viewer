@@ -1,0 +1,19 @@
+{
+  "app_title": "WhatsApp Export Viewer",
+  "choose_zip": "Elegir ZIP de WhatsApp",
+  "choose_output": "Elegir carpeta de salida",
+  "zip_file": "Archivo ZIP",
+  "output_folder": "Carpeta de salida",
+  "owner": "Tu nombre en el chat",
+  "language": "Idioma",
+  "convert_audio": "Convertir audio .opus a .mp3 cuando ffmpeg esté disponible",
+  "self_contained": "Generar index.html autocontenido",
+  "generate": "Generar visor",
+  "open_output": "Abrir carpeta generada",
+  "ready": "Listo.",
+  "missing_zip": "Primero elige un archivo ZIP de WhatsApp.",
+  "missing_output": "Primero elige una carpeta de salida.",
+  "success": "Visor generado correctamente.",
+  "error": "Algo salió mal"
+}
+

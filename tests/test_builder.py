@@ -1,7 +1,9 @@
 import json
 import zipfile
 
-from whatsapp_export_viewer.builder import build_export
+import pytest
+
+from whatsapp_export_viewer.builder import build_export, safe_extract_zip
 
 
 def test_builds_offline_export_with_organized_media(tmp_path):
@@ -42,3 +44,15 @@ def test_builds_offline_export_with_organized_media(tmp_path):
     assert messages[0]["side"] == "out"
     assert messages[1]["text"] == ""
 
+
+def test_blocks_zip_path_traversal(tmp_path):
+    zip_path = tmp_path / "bad.zip"
+    destination = tmp_path / "extract"
+    destination.mkdir()
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr("../evil.txt", "nope")
+
+    with pytest.raises(ValueError, match="Unsafe ZIP entry"):
+        safe_extract_zip(zip_path, destination)
+
+    assert not (tmp_path / "evil.txt").exists()
