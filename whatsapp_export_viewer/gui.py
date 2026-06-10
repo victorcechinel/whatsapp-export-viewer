@@ -97,12 +97,18 @@ class ViewerApp:
         self.buttons["generate"] = ttk.Button(actions, text=self.tr("generate"), command=self.generate)
         self.buttons["generate"].pack(side=tk.LEFT)
         self.buttons["open_output"] = ttk.Button(actions, text=self.tr("open_output"), command=self.open_output)
-        self.buttons["open_output"].pack(side=tk.LEFT, padx=(8, 0))
-        self.buttons["open_browser"] = ttk.Button(actions, text=self.tr("open_browser"), command=self.open_browser, state=tk.DISABLED)
-        self.buttons["open_browser"].pack(side=tk.LEFT, padx=(8, 0))
+        self.buttons["open_browser"] = ttk.Button(actions, text=self.tr("open_browser"), command=self.open_browser)
         row += 1
 
         ttk.Label(frame, textvariable=self.status).grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=6)
+
+    def hide_generated_actions(self) -> None:
+        self.buttons["open_output"].pack_forget()
+        self.buttons["open_browser"].pack_forget()
+
+    def show_generated_actions(self) -> None:
+        self.buttons["open_output"].pack(side=tk.LEFT, padx=(8, 0))
+        self.buttons["open_browser"].pack(side=tk.LEFT, padx=(8, 0))
 
     def update_generate_state(self) -> None:
         if "generate" not in self.buttons:
@@ -126,7 +132,7 @@ class ViewerApp:
             self.zip_path.set(path)
             self.owner.set("")
             self.generated_index = None
-            self.buttons["open_browser"].configure(state=tk.DISABLED)
+            self.hide_generated_actions()
             self.owner_box.configure(values=[], state="disabled")
             self.status.set(self.tr("loading_participants"))
             if not self.output_path.get():
@@ -164,7 +170,7 @@ class ViewerApp:
         if path:
             self.output_path.set(path)
             self.generated_index = None
-            self.buttons["open_browser"].configure(state=tk.DISABLED)
+            self.hide_generated_actions()
 
     def generate(self) -> None:
         if not self.zip_path.get():
@@ -196,13 +202,13 @@ class ViewerApp:
 
     def _generation_succeeded(self) -> None:
         self.generated_index = Path(self.output_path.get()).expanduser() / "index.html"
-        self.buttons["open_browser"].configure(state=tk.NORMAL)
+        self.show_generated_actions()
         self.status.set(self.tr("success"))
         self.update_generate_state()
 
     def _generation_failed(self, exc: Exception) -> None:
         self.generated_index = None
-        self.buttons["open_browser"].configure(state=tk.DISABLED)
+        self.hide_generated_actions()
         self.status.set(f"{self.tr('error')}: {exc}")
         messagebox.showerror(self.tr("app_title"), f"{self.tr('error')}:\n{exc}")
         self.update_generate_state()
