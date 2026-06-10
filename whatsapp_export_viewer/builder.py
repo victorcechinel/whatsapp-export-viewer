@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import tempfile
 import zipfile
 from collections import Counter
@@ -12,6 +11,8 @@ from typing import Any
 
 from .media import copy_media
 from .parser import match_message_line, parse_chat_text, read_text_flex, safe_name
+
+MediaMap = dict[str, list[dict[str, Any]]]
 
 
 def safe_extract_zip(zip_path: Path, destination: Path) -> None:
@@ -39,27 +40,33 @@ def find_chat_file(root: Path) -> Path:
     return scored[0][2]
 
 
-def attach_media(messages: list[dict[str, Any]], media_map: dict[str, dict[str, Any]], owner: str | None) -> None:
+def prepare_output_directory(output: Path) -> Path:
+    output = output.expanduser().resolve()
+    if output.exists() and not output.is_dir():
+        raise NotADirectoryError(f"Output path exists and is not a directory: {output}")
+    if output.exists() and any(output.iterdir()):
+        raise FileExistsError(f"Output directory is not empty: {output}")
+    output.mkdir(parents=True, exist_ok=True)
+    return output
+
+
+def attach_media(messages: list[dict[str, Any]], media_map: MediaMap, owner: str | None) -> None:
     for message in messages:
         message["side"] = "out" if owner and message.get("sender") == owner else "in"
         if message["type"] == "system":
             message["side"] = "system"
         seen: set[str] = set()
         for ref in message.get("attachment_refs", []):
-            attachment = media_map.get(safe_name(ref))
-            if attachment and attachment["path"] not in seen:
-                message["attachments"].append(attachment)
-                seen.add(attachment["path"])
-        text = message.get("text", "")
-        for name, attachment in media_map.items():
-            if name in text and attachment["path"] not in seen:
+            for attachment in media_map.get(safe_name(ref), []):
+                if attachment["path"] in seen:
+                    continue
                 message["attachments"].append(attachment)
                 seen.add(attachment["path"])
 
 
-def summarize(messages: list[dict[str, Any]], media_map: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def summarize(messages: list[dict[str, Any]], media_map: MediaMap) -> dict[str, Any]:
     participants = Counter(m["sender"] for m in messages if m.get("sender"))
-    media = Counter(item["kind"] for item in media_map.values())
+    media = Counter(item["kind"] for items in media_map.values() for item in items)
     dates = Counter(m["date"] for m in messages if m.get("date"))
     sorted_dates = sorted(dates.items(), key=lambda item: datetime.strptime(item[0], "%d/%m/%Y"))
     return {
@@ -77,7 +84,8 @@ def summarize(messages: list[dict[str, Any]], media_map: dict[str, dict[str, Any
 
 def js_data_literal(messages: list[dict[str, Any]], summary: dict[str, Any]) -> str:
     payload = {"messages": messages, "summary": summary}
-    return "window.WHATSAPP_EXPORT_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+    return "window.WHATSAPP_EXPORT_DATA = " + data + ";\n"
 
 
 def template_text(name: str) -> str:
@@ -102,12 +110,9 @@ def write_static_files(output: Path, self_contained: bool, messages: list[dict[s
 
 def build_export(zip_path: Path, output: Path, owner: str | None = None, convert_audio: bool = False, self_contained: bool = False) -> None:
     zip_path = zip_path.expanduser()
-    output = output.expanduser()
     if not zip_path.exists():
         raise FileNotFoundError(f"ZIP not found: {zip_path}")
-    if output.exists():
-        shutil.rmtree(output)
-    output.mkdir(parents=True)
+    output = prepare_output_directory(output)
 
     with tempfile.TemporaryDirectory() as tmp:
         extracted = Path(tmp) / "extract"

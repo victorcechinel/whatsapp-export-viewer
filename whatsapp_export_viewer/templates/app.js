@@ -101,10 +101,11 @@ function renderUntilDate(date) {
     document.getElementById(`media-date-${date.replaceAll("/", "-")}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
-  let guard = 0;
-  while (rendered < filtered.length && !document.getElementById(`date-${date.replaceAll("/", "-")}`) && guard < 100) {
+  let pages = 0;
+  const maxPages = Math.ceil(filtered.length / pageSize);
+  while (rendered < filtered.length && !document.getElementById(`date-${date.replaceAll("/", "-")}`) && pages < maxPages) {
     renderMore();
-    guard += 1;
+    pages += 1;
   }
 }
 
@@ -194,6 +195,7 @@ document.addEventListener("click", (event) => {
   const full = event.target.closest("[data-full]");
   if (full) {
     $("#lightboxImg").src = full.dataset.full;
+    $("#lightboxImg").alt = full.querySelector("img")?.alt || full.getAttribute("aria-label") || "Imagem ampliada";
     $("#lightbox").classList.add("open");
   }
   if (event.target.matches("#more")) renderMore();
@@ -211,4 +213,3 @@ $(".main").addEventListener("scroll", (event) => {
 load().catch((error) => {
   $("#messages").innerHTML = `<div class="empty">Erro ao carregar dados: ${esc(error.message)}</div>`;
 });
-

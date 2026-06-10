@@ -67,8 +67,8 @@ def audio_duration(path: Path) -> float | None:
         return None
 
 
-def copy_media(extracted: Path, output: Path, chat_file: Path, convert_audio: bool) -> dict[str, dict[str, Any]]:
-    media_map: dict[str, dict[str, Any]] = {}
+def copy_media(extracted: Path, output: Path, chat_file: Path, convert_audio: bool) -> dict[str, list[dict[str, Any]]]:
+    media_map: dict[str, list[dict[str, Any]]] = {}
     for directory in ("images", "videos", "audios", "documents"):
         (output / "media" / directory).mkdir(parents=True, exist_ok=True)
 
@@ -95,6 +95,5 @@ def copy_media(extracted: Path, output: Path, chat_file: Path, convert_audio: bo
                 mp3_dest = unique_destination(output / "media" / "audios", dest.with_suffix(".mp3").name)
                 if convert_opus_to_mp3(dest, mp3_dest):
                     info["mp3_path"] = mp3_dest.relative_to(output).as_posix()
-        media_map.setdefault(safe_name(source.name), info)
+        media_map.setdefault(safe_name(source.name), []).append(info)
     return media_map
-

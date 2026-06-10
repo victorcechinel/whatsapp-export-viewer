@@ -20,7 +20,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-convert-audio", dest="convert_audio", action="store_false", help="Keep original audio files only.")
     parser.set_defaults(convert_audio=False)
     parser.add_argument("--self-contained", action="store_true", help="Inline CSS, JS, and chat data into index.html.")
-    parser.add_argument("--timezone", default="America/Sao_Paulo", help="Reserved for future timestamp normalization.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 
@@ -34,4 +33,3 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"Site generated at: {args.output.expanduser() / 'index.html'}")
     return 0
-
