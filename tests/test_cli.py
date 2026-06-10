@@ -10,6 +10,8 @@ def test_cli_accepts_expected_options():
         "Ana",
         "--convert-audio",
         "--self-contained",
+        "--language",
+        "es",
     ])
 
     assert str(args.zip_path) == "chat.zip"
@@ -17,4 +19,4 @@ def test_cli_accepts_expected_options():
     assert args.owner == "Ana"
     assert args.convert_audio is True
     assert args.self_contained is True
-
+    assert args.language == "es"

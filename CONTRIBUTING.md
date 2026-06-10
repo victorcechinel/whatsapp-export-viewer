@@ -184,6 +184,8 @@ whatsapp_export_viewer/i18n/pt-BR.json
 whatsapp_export_viewer/i18n/es.json
 ```
 
+Viewer template text should use `{{viewer_*}}` placeholders in `whatsapp_export_viewer/templates/index.html` and `t("viewer_*")` in `whatsapp_export_viewer/templates/app.js`. Do not hard-code user-facing generated-viewer text in a single language.
+
 When changing the project website, update the localized pages and shared scripts in:
 
 ```text

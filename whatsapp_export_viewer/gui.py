@@ -148,6 +148,7 @@ class ViewerApp:
                 owner=self.owner.get() or None,
                 convert_audio=self.convert_audio.get(),
                 self_contained=self.self_contained.get(),
+                language=self.language.get(),
             )
         except Exception as exc:  # pragma: no cover - UI surface
             self.root.after(0, lambda: self._generation_failed(exc))

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from . import __version__
 from .builder import build_export
+from .i18n import SUPPORTED_LANGUAGES
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-convert-audio", dest="convert_audio", action="store_false", help="Keep original audio files only.")
     parser.set_defaults(convert_audio=False)
     parser.add_argument("--self-contained", action="store_true", help="Inline CSS, JS, and chat data into index.html.")
+    parser.add_argument("--language", choices=SUPPORTED_LANGUAGES, default="en", help="Language for the generated offline viewer.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 
@@ -27,7 +29,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        build_export(args.zip_path, args.output, owner=args.owner, convert_audio=args.convert_audio, self_contained=args.self_contained)
+        build_export(
+            args.zip_path,
+            args.output,
+            owner=args.owner,
+            convert_audio=args.convert_audio,
+            self_contained=args.self_contained,
+            language=args.language,
+        )
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="{{viewer_lang}}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,43 +11,43 @@
     <aside class="sidebar">
       <header class="brand">
         <h1>WhatsApp Export Viewer</h1>
-        <p>Arquivo local, offline e privado</p>
+        <p>{{viewer_tagline}}</p>
       </header>
       <section class="controls">
-        <input id="search" type="search" placeholder="Buscar na conversa">
-        <select id="participant"><option value="">Todos os participantes</option></select>
+        <input id="search" type="search" placeholder="{{viewer_search_placeholder}}">
+        <select id="participant"><option value="">{{viewer_all_participants}}</option></select>
       </section>
       <section class="stats">
-        <div class="stat"><b id="total">0</b><span>mensagens</span></div>
-        <div class="stat"><b id="images">0</b><span>imagens</span></div>
-        <div class="stat"><b id="videos">0</b><span>vídeos</span></div>
-        <div class="stat"><b id="audios">0</b><span>áudios</span></div>
-        <div class="stat"><b id="docs">0</b><span>documentos</span></div>
+        <div class="stat"><b id="total">0</b><span>{{viewer_messages}}</span></div>
+        <div class="stat"><b id="images">0</b><span>{{viewer_images}}</span></div>
+        <div class="stat"><b id="videos">0</b><span>{{viewer_videos}}</span></div>
+        <div class="stat"><b id="audios">0</b><span>{{viewer_audios}}</span></div>
+        <div class="stat"><b id="docs">0</b><span>{{viewer_documents}}</span></div>
       </section>
       <section class="gallery">
-        <h2>Galeria</h2>
+        <h2>{{viewer_gallery}}</h2>
         <div class="tabs">
-          <button data-kind="images">Imagens</button>
-          <button data-kind="videos">Vídeos</button>
-          <button data-kind="audios">Áudios</button>
-          <button data-kind="documents">Documentos</button>
+          <button data-kind="images">{{viewer_images}}</button>
+          <button data-kind="videos">{{viewer_videos}}</button>
+          <button data-kind="audios">{{viewer_audios}}</button>
+          <button data-kind="documents">{{viewer_documents}}</button>
         </div>
       </section>
-      <section class="participants"><h2>Participantes</h2><div id="participants"></div></section>
-      <section class="dates"><h2>Datas</h2><div id="dates"></div></section>
+      <section class="participants"><h2>{{viewer_participants}}</h2><div id="participants"></div></section>
+      <section class="dates"><h2>{{viewer_dates}}</h2><div id="dates"></div></section>
     </aside>
     <main class="main">
       <div class="topbar">
-        <div><strong id="viewTitle">Conversa</strong><br><span id="shown">Carregando...</span></div>
+        <div><strong id="viewTitle">{{viewer_chat}}</strong><br><span id="shown">{{viewer_loading}}</span></div>
         <div>
-          <button id="backToChat" class="back" type="button">Voltar</button>
-          <button id="more" class="download" type="button">Carregar mais</button>
+          <button id="backToChat" class="back" type="button">{{viewer_back}}</button>
+          <button id="more" class="download" type="button">{{viewer_load_more}}</button>
         </div>
       </div>
       <section id="messages" class="messages"></section>
     </main>
   </div>
-  <div id="lightbox" class="lightbox"><button id="closeLightbox" type="button" aria-label="Fechar imagem ampliada">×</button><img id="lightboxImg" alt=""></div>
+  <div id="lightbox" class="lightbox"><button id="closeLightbox" type="button" aria-label="{{viewer_close_lightbox}}">×</button><img id="lightboxImg" alt=""></div>
   <script src="data/bootstrap.js"></script>
   <script src="assets/app.js"></script>
 </body>

@@ -9,10 +9,13 @@ def test_normalizes_supported_languages():
 
 
 def test_translations_have_expected_keys():
+    expected = set(load_translations("en"))
     for language in ("en", "pt-BR", "es"):
         translations = load_translations(language)
+        assert set(translations) == expected
         assert translations["app_title"] == "WhatsApp Export Viewer"
         assert translations["generate"]
+        assert translations["viewer_chat"]
 
 
 def test_gui_class_is_importable():

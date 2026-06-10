@@ -79,6 +79,7 @@ Convert a chat:
 whatsapp-export-viewer "WhatsApp Chat.zip" \
   --output conversa-html \
   --owner "Your Name" \
+  --language pt-BR \
   --convert-audio
 ```
 
@@ -88,6 +89,7 @@ Useful options:
 | --- | --- |
 | `--output`, `-o` | Output folder for the static website |
 | `--owner "Name"` | Participant rendered as “me”, aligned right |
+| `--language en|pt-BR|es` | Language used by the generated offline viewer |
 | `--convert-audio` | Convert `.opus` to `.mp3` when `ffmpeg` is available |
 | `--no-convert-audio` | Keep original audio files only |
 | `--self-contained` | Inline CSS, JavaScript, and data into one `index.html` |
@@ -147,7 +149,7 @@ The project is being prepared for full internationalization:
 - Portuguese Brazil
 - Spanish
 
-The app already has a shared translation structure. The GitHub Pages site detects browser language and lets users switch manually.
+The app, generated offline viewer, and GitHub Pages site support English, Brazilian Portuguese, and Spanish. The generated viewer stores its local UI translations in `data/translations.json`, so it keeps working offline.
 
 ## 🔐 Privacy and Safety
 

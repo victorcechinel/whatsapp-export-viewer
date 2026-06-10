@@ -20,12 +20,13 @@ def test_builds_offline_export_with_organized_media(tmp_path):
         archive.writestr("IMG-20260610-WA0001.jpg", b"fake-jpg")
         archive.writestr("PTT-20260610-WA0002.opus", b"fake-opus")
 
-    build_export(zip_path, output, owner="Ana", convert_audio=False, self_contained=False)
+    build_export(zip_path, output, owner="Ana", convert_audio=False, self_contained=False, language="pt-BR")
 
     assert (output / "index.html").exists()
     assert (output / "assets" / "style.css").exists()
     assert (output / "assets" / "app.js").exists()
     assert (output / "data" / "bootstrap.js").exists()
+    assert (output / "data" / "translations.json").exists()
     assert (output / "media" / "images" / "IMG-20260610-WA0001.jpg").exists()
     assert (output / "media" / "audios" / "PTT-20260610-WA0002.opus").exists()
 
@@ -34,15 +35,18 @@ def test_builds_offline_export_with_organized_media(tmp_path):
     assert "showMediaView" in app_js
     assert "media-card ${esc(message.side" in app_js
     assert "Voltar" in index_html
+    assert "{{" not in index_html
 
     messages = json.loads((output / "data" / "messages.json").read_text(encoding="utf-8"))
     summary = json.loads((output / "data" / "summary.json").read_text(encoding="utf-8"))
+    translations = json.loads((output / "data" / "translations.json").read_text(encoding="utf-8"))
     assert summary["total_messages"] == 3
     assert summary["participants"]["Ana"] == 2
     assert summary["media"]["images"] == 1
     assert summary["media"]["audios"] == 1
     assert messages[0]["side"] == "out"
     assert messages[1]["text"] == ""
+    assert translations["viewer_chat"] == "Conversa"
 
 
 def test_blocks_zip_path_traversal(tmp_path):
@@ -78,11 +82,13 @@ def test_self_contained_escapes_script_end_tag(tmp_path):
     with zipfile.ZipFile(zip_path, "w") as archive:
         archive.writestr("_chat.txt", "10/06/2026 14:35 - Ana: </script><script>alert(1)</script>\n")
 
-    build_export(zip_path, output, self_contained=True)
+    build_export(zip_path, output, self_contained=True, language="es")
 
     html = (output / "index.html").read_text(encoding="utf-8")
     assert "\\u003c/script>" in html
     assert "</script><script>alert(1)" not in html
+    assert "Conversación" in html
+    assert "{{" not in html
 
 
 def test_duplicate_media_names_remain_reachable(tmp_path):

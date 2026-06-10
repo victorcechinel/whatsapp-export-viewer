@@ -5,10 +5,12 @@ import tempfile
 import zipfile
 from collections import Counter
 from datetime import datetime
+from html import escape
 from importlib import resources
 from pathlib import Path
 from typing import Any
 
+from .i18n import load_translations, normalize_language
 from .media import copy_media
 from .parser import match_message_line, parse_chat_text, read_text_flex, safe_name
 
@@ -82,8 +84,20 @@ def summarize(messages: list[dict[str, Any]], media_map: MediaMap) -> dict[str, 
     }
 
 
-def js_data_literal(messages: list[dict[str, Any]], summary: dict[str, Any]) -> str:
-    payload = {"messages": messages, "summary": summary}
+def viewer_translations(language: str | None) -> dict[str, str]:
+    translations = load_translations(language)
+    return {key: str(value) for key, value in translations.items() if key.startswith("viewer_")}
+
+
+def render_html_template(template: str, translations: dict[str, str]) -> str:
+    html = template
+    for key, value in translations.items():
+        html = html.replace("{{" + key + "}}", escape(value, quote=True))
+    return html
+
+
+def js_data_literal(messages: list[dict[str, Any]], summary: dict[str, Any], translations: dict[str, str]) -> str:
+    payload = {"messages": messages, "summary": summary, "translations": translations}
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     return "window.WHATSAPP_EXPORT_DATA = " + data + ";\n"
 
@@ -92,13 +106,19 @@ def template_text(name: str) -> str:
     return resources.files("whatsapp_export_viewer.templates").joinpath(name).read_text(encoding="utf-8")
 
 
-def write_static_files(output: Path, self_contained: bool, messages: list[dict[str, Any]], summary: dict[str, Any]) -> None:
-    index = template_text("index.html")
+def write_static_files(
+    output: Path,
+    self_contained: bool,
+    messages: list[dict[str, Any]],
+    summary: dict[str, Any],
+    translations: dict[str, str],
+) -> None:
+    index = render_html_template(template_text("index.html"), translations)
     css = template_text("style.css")
     app = template_text("app.js")
     if self_contained:
         html = index.replace('<link rel="stylesheet" href="assets/style.css">', f"<style>{css}</style>")
-        html = html.replace('<script src="data/bootstrap.js"></script>', f"<script>{js_data_literal(messages, summary)}</script>")
+        html = html.replace('<script src="data/bootstrap.js"></script>', f"<script>{js_data_literal(messages, summary, translations)}</script>")
         html = html.replace('<script src="assets/app.js"></script>', f"<script>{app}</script>")
         (output / "index.html").write_text(html, encoding="utf-8")
         return
@@ -108,11 +128,20 @@ def write_static_files(output: Path, self_contained: bool, messages: list[dict[s
     (output / "assets" / "app.js").write_text(app, encoding="utf-8")
 
 
-def build_export(zip_path: Path, output: Path, owner: str | None = None, convert_audio: bool = False, self_contained: bool = False) -> None:
+def build_export(
+    zip_path: Path,
+    output: Path,
+    owner: str | None = None,
+    convert_audio: bool = False,
+    self_contained: bool = False,
+    language: str | None = None,
+) -> None:
     zip_path = zip_path.expanduser()
     if not zip_path.exists():
         raise FileNotFoundError(f"ZIP not found: {zip_path}")
     output = prepare_output_directory(output)
+    language = normalize_language(language)
+    translations = viewer_translations(language)
 
     with tempfile.TemporaryDirectory() as tmp:
         extracted = Path(tmp) / "extract"
@@ -132,5 +161,6 @@ def build_export(zip_path: Path, output: Path, owner: str | None = None, convert
     (output / "data").mkdir(parents=True, exist_ok=True)
     (output / "data" / "messages.json").write_text(json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "data" / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    (output / "data" / "bootstrap.js").write_text(js_data_literal(messages, summary), encoding="utf-8")
-    write_static_files(output, self_contained, messages, summary)
+    (output / "data" / "translations.json").write_text(json.dumps(translations, ensure_ascii=False, indent=2), encoding="utf-8")
+    (output / "data" / "bootstrap.js").write_text(js_data_literal(messages, summary, translations), encoding="utf-8")
+    write_static_files(output, self_contained, messages, summary, translations)
