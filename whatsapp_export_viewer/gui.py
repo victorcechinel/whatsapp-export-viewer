@@ -42,10 +42,11 @@ class ViewerApp:
         self.owner = tk.StringVar()
         self.status = tk.StringVar(value=self.text["ready"])
         self.generated_index: Path | None = None
+        self.generated_current_page = False
         self.build_ui()
-        self.zip_path.trace_add("write", lambda *_args: self.update_generate_state())
-        self.output_path.trace_add("write", lambda *_args: self.update_generate_state())
-        self.owner.trace_add("write", lambda *_args: self.update_generate_state())
+        self.zip_path.trace_add("write", lambda *_args: self.mark_inputs_changed())
+        self.output_path.trace_add("write", lambda *_args: self.mark_inputs_changed())
+        self.owner.trace_add("write", lambda *_args: self.mark_inputs_changed())
         self.update_generate_state()
 
     def tr(self, key: str) -> str:
@@ -110,10 +111,16 @@ class ViewerApp:
         self.buttons["open_output"].pack(side=tk.LEFT, padx=(8, 0))
         self.buttons["open_browser"].pack(side=tk.LEFT, padx=(8, 0))
 
+    def mark_inputs_changed(self) -> None:
+        self.generated_current_page = False
+        self.generated_index = None
+        self.hide_generated_actions()
+        self.update_generate_state()
+
     def update_generate_state(self) -> None:
         if "generate" not in self.buttons:
             return
-        ready = bool(self.zip_path.get() and self.output_path.get() and self.owner.get())
+        ready = bool(self.zip_path.get() and self.output_path.get() and self.owner.get() and not self.generated_current_page)
         self.buttons["generate"].configure(state=tk.NORMAL if ready else tk.DISABLED)
 
     def change_language(self) -> None:
@@ -125,6 +132,10 @@ class ViewerApp:
             button.configure(text=self.tr(key))
         if self.status.get() in {"Ready.", "Pronto.", "Listo."}:
             self.status.set(self.tr("ready"))
+        self.generated_current_page = False
+        self.generated_index = None
+        self.hide_generated_actions()
+        self.update_generate_state()
 
     def choose_zip(self) -> None:
         path = filedialog.askopenfilename(filetypes=[("WhatsApp ZIP", "*.zip"), ("All files", "*.*")])
@@ -202,12 +213,14 @@ class ViewerApp:
 
     def _generation_succeeded(self) -> None:
         self.generated_index = Path(self.output_path.get()).expanduser() / "index.html"
+        self.generated_current_page = True
         self.show_generated_actions()
         self.status.set(self.tr("success"))
         self.update_generate_state()
 
     def _generation_failed(self, exc: Exception) -> None:
         self.generated_index = None
+        self.generated_current_page = False
         self.hide_generated_actions()
         self.status.set(f"{self.tr('error')}: {exc}")
         messagebox.showerror(self.tr("app_title"), f"{self.tr('error')}:\n{exc}")
