@@ -94,10 +94,12 @@ Useful options:
 | `--language en|pt-BR|es` | Language used by the generated offline viewer |
 | `--convert-audio` | Convert `.opus` to `.mp3` when `ffmpeg` is available |
 | `--no-convert-audio` | Keep original audio files only |
-| `--self-contained` | Inline CSS, JavaScript, and data into one `index.html` |
+| `--self-contained` | Inline CSS, JavaScript, and chat data into `index.html`; optional and better for small chats |
 | `--version` | Print the installed version |
 
 ## 📁 Generated Folder
+
+By default, the app creates a separated folder structure. This is the recommended layout for large WhatsApp conversations because messages, metadata, scripts, styles, media, and the original chat text stay in predictable files and folders.
 
 ```text
 conversa-html/
@@ -119,6 +121,8 @@ conversa-html/
 ```
 
 You can zip this generated folder and open it later on Windows, macOS, or Linux. Keep the folder structure intact so relative media links continue to work.
+
+The self-contained option only embeds CSS, JavaScript, and chat data into `index.html`. Media files still stay in `media/`, and the separated default remains the best choice for big exports.
 
 ## 🪟 Windows
 

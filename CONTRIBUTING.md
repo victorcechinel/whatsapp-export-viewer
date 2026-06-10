@@ -109,7 +109,7 @@ Check:
 - generate button stays disabled until ZIP, output folder, and owner are set
 - open-in-browser button stays disabled until generation succeeds
 - audio conversion checkbox
-- self-contained option
+- self-contained option remains optional; the default separated output is preferred for large chats
 - generated output folder
 
 If you changed release packaging, also test:
