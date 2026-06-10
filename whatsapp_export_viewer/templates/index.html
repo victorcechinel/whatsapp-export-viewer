@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhatsApp Export Viewer</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <header class="brand">
+        <h1>WhatsApp Export Viewer</h1>
+        <p>Arquivo local, offline e privado</p>
+      </header>
+      <section class="controls">
+        <input id="search" type="search" placeholder="Buscar na conversa">
+        <select id="participant"><option value="">Todos os participantes</option></select>
+      </section>
+      <section class="stats">
+        <div class="stat"><b id="total">0</b><span>mensagens</span></div>
+        <div class="stat"><b id="images">0</b><span>imagens</span></div>
+        <div class="stat"><b id="videos">0</b><span>vídeos</span></div>
+        <div class="stat"><b id="audios">0</b><span>áudios</span></div>
+        <div class="stat"><b id="docs">0</b><span>documentos</span></div>
+      </section>
+      <section class="gallery">
+        <h2>Galeria</h2>
+        <div class="tabs">
+          <button data-kind="images">Imagens</button>
+          <button data-kind="videos">Vídeos</button>
+          <button data-kind="audios">Áudios</button>
+          <button data-kind="documents">Documentos</button>
+        </div>
+      </section>
+      <section class="participants"><h2>Participantes</h2><div id="participants"></div></section>
+      <section class="dates"><h2>Datas</h2><div id="dates"></div></section>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div><strong id="viewTitle">Conversa</strong><br><span id="shown">Carregando...</span></div>
+        <div>
+          <button id="backToChat" class="back" type="button">Voltar</button>
+          <button id="more" class="download" type="button">Carregar mais</button>
+        </div>
+      </div>
+      <section id="messages" class="messages"></section>
+    </main>
+  </div>
+  <div id="lightbox" class="lightbox"><button id="closeLightbox" type="button">×</button><img id="lightboxImg" alt=""></div>
+  <script src="data/bootstrap.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
+

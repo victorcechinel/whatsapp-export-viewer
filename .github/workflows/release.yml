@@ -1,0 +1,132 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish, for example v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  python-package:
+    name: Build Python package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build tooling
+        run: python -m pip install -e ".[dev]"
+
+      - name: Test
+        run: pytest
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/*
+
+  binaries:
+    name: Build ${{ matrix.asset-name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            asset-name: whatsapp-export-viewer-windows-x64
+            binary-name: whatsapp-export-viewer.exe
+          - os: macos-13
+            asset-name: whatsapp-export-viewer-macos-x64
+            binary-name: whatsapp-export-viewer
+          - os: macos-latest
+            asset-name: whatsapp-export-viewer-macos-arm64
+            binary-name: whatsapp-export-viewer
+          - os: ubuntu-latest
+            asset-name: whatsapp-export-viewer-linux-x64
+            binary-name: whatsapp-export-viewer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build tooling
+        run: python -m pip install -e ".[dev]"
+
+      - name: Test
+        run: pytest
+
+      - name: Build executable
+        run: python -m PyInstaller --onefile --name whatsapp-export-viewer --collect-data whatsapp_export_viewer scripts/whatsapp-export-viewer.py
+
+      - name: Prepare Windows asset
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path release-assets
+          Copy-Item "dist/${{ matrix.binary-name }}" "release-assets/${{ matrix.binary-name }}"
+          Compress-Archive -Path "release-assets/${{ matrix.binary-name }}" -DestinationPath "release-assets/${{ matrix.asset-name }}.zip"
+
+      - name: Prepare Unix asset
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p release-assets/${{ matrix.asset-name }}
+          cp "dist/${{ matrix.binary-name }}" "release-assets/${{ matrix.asset-name }}/"
+          chmod +x "release-assets/${{ matrix.asset-name }}/${{ matrix.binary-name }}"
+          tar -czf "release-assets/${{ matrix.asset-name }}.tar.gz" -C release-assets "${{ matrix.asset-name }}"
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset-name }}
+          path: |
+            release-assets/*.zip
+            release-assets/*.tar.gz
+
+  publish:
+    name: Publish GitHub Release
+    needs: [python-package, binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release assets
+        run: find release-assets -maxdepth 2 -type f -print
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          gh release create "${RELEASE_TAG}" release-assets/* --generate-notes
