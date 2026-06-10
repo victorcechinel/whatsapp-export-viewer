@@ -1,4 +1,5 @@
 let messages = [], summary = {}, translations = {}, filtered = [], rendered = 0, lastDate = "", view = "chat", mediaKind = "";
+let selectedParticipant = "";
 const pageSize = 140;
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[char]));
@@ -43,8 +44,10 @@ function hydrate() {
   $("#videos").textContent = summary.media?.videos || 0;
   $("#audios").textContent = summary.media?.audios || 0;
   $("#docs").textContent = summary.media?.documents || 0;
-  const participant = $("#participant");
-  Object.keys(summary.participants || {}).forEach((name) => participant.insertAdjacentHTML("beforeend", `<option value="${esc(name)}">${esc(name)}</option>`));
+  $("#participantOptions").innerHTML = [
+    `<button type="button" role="option" aria-selected="true" data-participant="">${esc(t("viewer_all_participants"))}</button>`,
+    ...Object.keys(summary.participants || {}).map((name) => `<button type="button" role="option" aria-selected="false" data-participant="${esc(name)}">${esc(name)}</button>`),
+  ].join("");
   $("#participants").innerHTML = Object.entries(summary.participants || {}).map(([name, count]) => `<button class="pill" data-part="${esc(name)}"><span>${esc(name)}</span><b>${count}</b></button>`).join("");
   $("#dates").innerHTML = Object.entries(summary.dates || {}).map(([date, count]) => `<button class="pill" data-date="${esc(date)}"><span>${esc(date)}</span><b>${count}</b></button>`).join("");
   setActiveMedia("");
@@ -58,10 +61,31 @@ function matchesQuery(message, query) {
 
 function applyFilters() {
   const query = $("#search").value.trim().toLowerCase();
-  const participant = $("#participant").value;
-  filtered = messages.filter((message) => (!participant || message.sender === participant) && matchesQuery(message, query));
+  filtered = messages.filter((message) => (!selectedParticipant || message.sender === selectedParticipant) && matchesQuery(message, query));
   if (view === "chat") renderChat();
   else renderMedia();
+}
+
+function setParticipant(name) {
+  selectedParticipant = name || "";
+  $("#participantDropdown").dataset.value = selectedParticipant;
+  $("#participantButton").textContent = selectedParticipant || t("viewer_all_participants");
+  document.querySelectorAll("#participantOptions [data-participant]").forEach((option) => {
+    option.setAttribute("aria-selected", String(option.dataset.participant === selectedParticipant));
+  });
+  closeParticipantDropdown();
+  applyFilters();
+}
+
+function toggleParticipantDropdown() {
+  const dropdown = $("#participantDropdown");
+  const open = dropdown.classList.toggle("open");
+  $("#participantButton").setAttribute("aria-expanded", String(open));
+}
+
+function closeParticipantDropdown() {
+  $("#participantDropdown").classList.remove("open");
+  $("#participantButton").setAttribute("aria-expanded", "false");
 }
 
 function setTopbar(title, shown) {
@@ -116,6 +140,13 @@ function renderMore() {
   $("#messages").insertAdjacentHTML("beforeend", html);
   rendered = target;
   $("#more").classList.toggle("visible", rendered < filtered.length);
+}
+
+function scrollChatToBottom() {
+  const main = $(".main");
+  requestAnimationFrame(() => {
+    main.scrollTop = main.scrollHeight;
+  });
 }
 
 function renderUntilDate(date) {
@@ -199,14 +230,24 @@ function mediaCard({ message, attachment }) {
 }
 
 document.addEventListener("input", (event) => {
-  if (event.target.matches("#search,#participant")) applyFilters();
+  if (event.target.matches("#search")) applyFilters();
 });
 
 document.addEventListener("click", (event) => {
+  if (event.target.matches("#participantButton")) {
+    toggleParticipantDropdown();
+    return;
+  }
+  const participantOption = event.target.closest("#participantOptions [data-participant]");
+  if (participantOption) {
+    setParticipant(participantOption.dataset.participant);
+    return;
+  }
+  if (!event.target.closest("#participantDropdown")) closeParticipantDropdown();
+
   const participant = event.target.closest("[data-part]");
   if (participant) {
-    $("#participant").value = participant.dataset.part;
-    applyFilters();
+    setParticipant(participant.dataset.part);
   }
   const date = event.target.closest("[data-date]");
   if (date) {
@@ -220,7 +261,10 @@ document.addEventListener("click", (event) => {
     $("#lightboxImg").alt = full.querySelector("img")?.alt || full.getAttribute("aria-label") || t("viewer_enlarged_image");
     $("#lightbox").classList.add("open");
   }
-  if (event.target.matches("#more")) renderMore();
+  if (event.target.matches("#more")) {
+    renderMore();
+    scrollChatToBottom();
+  }
   if (event.target.matches("#backToChat")) showChat();
   const stat = event.target.closest(".stats .stat");
   if (stat?.dataset.view === "chat") showChat();

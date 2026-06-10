@@ -24,7 +24,14 @@ body {
 .brand h1 { font-size: 20px; margin: 0 0 6px; }
 .brand p { margin: 0; color: #d9fdd3; font-size: 13px; }
 .controls { padding: 14px; display: grid; gap: 10px; }
-.controls input, .controls select { width: 100%; border: 1px solid var(--line); background: white; border-radius: 7px; padding: 10px 12px; font-size: 14px; }
+.controls input { width: 100%; border: 1px solid var(--line); background: white; border-radius: 7px; padding: 10px 12px; font-size: 14px; }
+.custom-select { position: relative; }
+.custom-select > button { width: 100%; border: 1px solid var(--line); background: white; border-radius: 7px; padding: 10px 34px 10px 12px; font-size: 14px; color: var(--text); text-align: left; cursor: pointer; position: relative; }
+.custom-select > button::after { content: ""; position: absolute; right: 13px; top: 50%; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-65%) rotate(45deg); }
+.custom-options { display: none; position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 6; max-height: 240px; overflow: auto; padding: 6px; background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+.custom-select.open .custom-options { display: grid; gap: 4px; }
+.custom-options button { width: 100%; border: 0; background: transparent; border-radius: 6px; padding: 9px 10px; color: var(--text); cursor: pointer; text-align: left; }
+.custom-options button:hover, .custom-options button[aria-selected="true"] { background: rgba(0, 168, 132, .12); color: #075e54; font-weight: 700; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 14px; }
 .stat { background: white; border: 1px solid #ececec; border-radius: 8px; padding: 10px; color: var(--text); cursor: pointer; text-align: left; font: inherit; }
 .stat.active { background: #075e54; border-color: #075e54; color: white; }

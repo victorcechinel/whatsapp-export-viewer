@@ -36,6 +36,8 @@ def test_builds_offline_export_with_organized_media(tmp_path):
     assert "media-card ${esc(message.side" in app_js
     assert "Voltar" in index_html
     assert 'data-kind="images"' in index_html
+    assert 'id="participantDropdown"' in index_html
+    assert '<select id="participant"' not in index_html
     assert 'class="gallery"' not in index_html
     assert "{{" not in index_html
 
