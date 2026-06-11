@@ -668,7 +668,7 @@ class ViewerApp:
         try:
             preview = inspect_export(zip_path)
         except Exception as exc:  # pragma: no cover - UI surface
-            self.root.after(0, lambda: self._participants_failed(exc))
+            self.root.after(0, lambda captured=exc: self._participants_failed(captured))
             return
         self.root.after(0, lambda: self._participants_loaded(zip_path, preview))
 
@@ -747,7 +747,7 @@ class ViewerApp:
                 progress_callback=self._progress,
             )
         except Exception as exc:  # pragma: no cover - UI surface
-            self.root.after(0, lambda: self._generation_failed(exc))
+            self.root.after(0, lambda captured=exc: self._generation_failed(captured))
             return
         self.root.after(0, self._generation_succeeded)
 
