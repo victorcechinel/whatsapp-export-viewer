@@ -158,7 +158,7 @@ def test_build_export_filters_messages_by_date_range(tmp_path):
         archive.writestr("dentro.jpg", b"in")
         archive.writestr("depois.jpg", b"out")
 
-    build_export(zip_path, output, date_from="10/06/2026", date_to="10/06/2026")
+    build_export(zip_path, output, language="pt-BR", date_from="10/06/2026", date_to="10/06/2026")
 
     messages = json.loads((output / "data" / "messages.json").read_text(encoding="utf-8"))
     summary = json.loads((output / "data" / "summary.json").read_text(encoding="utf-8"))
@@ -169,6 +169,23 @@ def test_build_export_filters_messages_by_date_range(tmp_path):
     assert not (output / "media" / "images" / "depois.jpg").exists()
     assert summary["date_range"]["from"] == "10/06/2026"
     assert summary["date_range"]["to"] == "10/06/2026"
+
+
+def test_build_export_uses_english_date_range_format(tmp_path):
+    zip_path = tmp_path / "WhatsApp Chat.zip"
+    output = tmp_path / "site"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr(
+            "_chat.txt",
+            """10/06/2026 14:35 - Ana: June ten
+11/06/2026 14:36 - Ana: June eleven
+""",
+        )
+
+    build_export(zip_path, output, language="en", date_from="06/10/2026", date_to="06/10/2026")
+
+    messages = json.loads((output / "data" / "messages.json").read_text(encoding="utf-8"))
+    assert [message["text"] for message in messages] == ["June ten"]
 
 
 def test_inspect_export_returns_preview_metadata(tmp_path):

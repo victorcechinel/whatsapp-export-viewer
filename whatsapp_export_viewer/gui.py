@@ -70,6 +70,7 @@ class ViewerApp:
 
         self.labels: dict[str, ttk.Label] = {}
         self.buttons: dict[str, ttk.Button] = {}
+        self.date_format_labels: list[ttk.Label] = []
         row = 0
 
         self.labels["language"] = ttk.Label(frame, text=self.tr("language"))
@@ -103,13 +104,17 @@ class ViewerApp:
         self.labels["date_from"] = ttk.Label(frame, text=self.tr("date_from"))
         self.labels["date_from"].grid(row=row, column=0, sticky=tk.W, pady=6)
         ttk.Entry(frame, textvariable=self.date_from).grid(row=row, column=1, sticky=tk.EW, pady=6)
-        ttk.Label(frame, text="DD/MM/YYYY").grid(row=row, column=2, sticky=tk.W, padx=(8, 0), pady=6)
+        date_from_format = ttk.Label(frame, text=self.tr("date_format"))
+        date_from_format.grid(row=row, column=2, sticky=tk.W, padx=(8, 0), pady=6)
+        self.date_format_labels.append(date_from_format)
         row += 1
 
         self.labels["date_to"] = ttk.Label(frame, text=self.tr("date_to"))
         self.labels["date_to"].grid(row=row, column=0, sticky=tk.W, pady=6)
         ttk.Entry(frame, textvariable=self.date_to).grid(row=row, column=1, sticky=tk.EW, pady=6)
-        ttk.Label(frame, text="DD/MM/YYYY").grid(row=row, column=2, sticky=tk.W, padx=(8, 0), pady=6)
+        date_to_format = ttk.Label(frame, text=self.tr("date_format"))
+        date_to_format.grid(row=row, column=2, sticky=tk.W, padx=(8, 0), pady=6)
+        self.date_format_labels.append(date_to_format)
         row += 1
 
         self.check_auto_open = ttk.Checkbutton(frame, text=self.tr("auto_open"), variable=self.auto_open)
@@ -161,6 +166,8 @@ class ViewerApp:
             label.configure(text=self.tr(key))
         for key, button in self.buttons.items():
             button.configure(text=self.tr(key))
+        for label in self.date_format_labels:
+            label.configure(text=self.tr("date_format"))
         self.check_auto_open.configure(text=self.tr("auto_open"))
         if self.status.get() in {"Ready.", "Pronto.", "Listo."}:
             self.status.set(self.tr("ready"))

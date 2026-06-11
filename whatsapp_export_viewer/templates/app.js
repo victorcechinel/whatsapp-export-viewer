@@ -88,13 +88,19 @@ function normalizeText(value) {
   return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-function parseDateInput(value) {
+function isEnglishLocale() {
+  return String(translations.viewer_lang || "").toLowerCase().startsWith("en");
+}
+
+function parseDateInput(value, order = isEnglishLocale() ? "mdy" : "dmy") {
   const text = value.trim();
   if (!text) return null;
   const matched = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!matched) return null;
-  const day = Number(matched[1]);
-  const month = Number(matched[2]);
+  const first = Number(matched[1]);
+  const second = Number(matched[2]);
+  const day = order === "mdy" ? second : first;
+  const month = order === "mdy" ? first : second;
   const year = Number(matched[3]);
   const parsed = new Date(year, month - 1, day);
   if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) return null;
@@ -111,7 +117,7 @@ function validateDateInputs() {
 
 function messageDay(message) {
   if (!message.date) return null;
-  return parseDateInput(message.date);
+  return parseDateInput(message.date, "dmy");
 }
 
 function matchesDateRange(message) {

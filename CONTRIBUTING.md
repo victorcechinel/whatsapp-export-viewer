@@ -106,7 +106,7 @@ Check:
 - participant list loading after ZIP selection
 - chat preview after ZIP selection
 - output folder picker
-- optional date range fields in `DD/MM/YYYY`
+- optional date range fields in the active language format
 - owner field stays disabled until participants are loaded
 - generate button stays disabled until ZIP, output folder, and owner are set
 - open-in-browser button stays disabled until generation succeeds

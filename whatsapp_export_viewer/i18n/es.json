@@ -7,6 +7,7 @@
   "owner": "Tu nombre en el chat",
   "date_from": "Desde",
   "date_to": "Hasta",
+  "date_format": "DD/MM/AAAA",
   "language": "Idioma",
   "auto_open": "Abrir en el navegador al terminar",
   "generate": "Generar página",

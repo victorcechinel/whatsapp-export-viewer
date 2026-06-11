@@ -18,8 +18,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", "-o", type=Path, default=Path("whatsapp-html-export"), help="Output folder for the static website.")
     parser.add_argument("--owner", help="Participant name rendered as 'me' and aligned to the right.")
     parser.add_argument("--language", choices=SUPPORTED_LANGUAGES, default="en", help="Language for the generated offline viewer.")
-    parser.add_argument("--date-from", help="Optional start date in DD/MM/YYYY format.")
-    parser.add_argument("--date-to", help="Optional end date in DD/MM/YYYY format.")
+    parser.add_argument("--date-from", help="Optional start date. Uses MM/DD/YYYY for English, DD/MM/YYYY for Portuguese or Spanish, or YYYY-MM-DD.")
+    parser.add_argument("--date-to", help="Optional end date. Uses MM/DD/YYYY for English, DD/MM/YYYY for Portuguese or Spanish, or YYYY-MM-DD.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 

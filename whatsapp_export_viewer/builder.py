@@ -66,21 +66,29 @@ def discover_participants(zip_path: Path) -> list[str]:
     return [name for name, _count in participants.most_common()]
 
 
-def parse_filter_date(value: str | None) -> datetime | None:
+def date_input_format(language: str | None) -> str:
+    return "%m/%d/%Y" if normalize_language(language) == "en" else "%d/%m/%Y"
+
+
+def date_format_label(language: str | None) -> str:
+    return "MM/DD/YYYY" if normalize_language(language) == "en" else "DD/MM/YYYY"
+
+
+def parse_filter_date(value: str | None, language: str | None = None) -> datetime | None:
     if not value:
         return None
     value = value.strip()
-    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+    for fmt in (date_input_format(language), "%Y-%m-%d"):
         try:
             return datetime.strptime(value, fmt)
         except ValueError:
             continue
-    raise ValueError(f"Invalid date '{value}'. Use DD/MM/YYYY.")
+    raise ValueError(f"Invalid date '{value}'. Use {date_format_label(language)}.")
 
 
-def filter_messages_by_date(messages: list[dict[str, Any]], date_from: str | None, date_to: str | None) -> list[dict[str, Any]]:
-    start = parse_filter_date(date_from)
-    end = parse_filter_date(date_to)
+def filter_messages_by_date(messages: list[dict[str, Any]], date_from: str | None, date_to: str | None, language: str | None = None) -> list[dict[str, Any]]:
+    start = parse_filter_date(date_from, language)
+    end = parse_filter_date(date_to, language)
     if start and end and start > end:
         raise ValueError("Start date must be before or equal to end date.")
     if not start and not end:
@@ -252,7 +260,7 @@ def build_export(
         original_chat = original_dir / "chat.txt"
         raw_chat_text = read_text_flex(chat_file)
         messages = parse_chat_text(raw_chat_text)
-        messages = filter_messages_by_date(messages, date_from, date_to)
+        messages = filter_messages_by_date(messages, date_from, date_to, language)
         original_chat.write_text(original_text_from_messages(messages) if (date_from or date_to) else raw_chat_text, encoding="utf-8")
         progress(3, "progress_copying_media")
         allowed_names = {safe_name(ref) for message in messages for ref in message.get("attachment_refs", [])} if (date_from or date_to) else None
