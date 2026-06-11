@@ -25,6 +25,7 @@ MUTED = "#5f6f69"
 LINE = "#d7e2de"
 PROGRESS_BG = "#d9e5e1"
 PROGRESS_FG = "#00a884"
+FONT_FAMILY = "TkDefaultFont"
 
 
 def load_tkinter() -> bool:
@@ -50,11 +51,11 @@ class StyledSelect:
         self.values = list(values or [])
         self.state = "normal"
         self.frame = tk.Frame(parent, bg=PANEL, highlightbackground=LINE, highlightcolor=GREEN, highlightthickness=1)
-        self.label = tk.Label(self.frame, textvariable=self.variable, anchor=tk.W, bg=PANEL, fg=TEXT, font=("TkDefaultFont", 15, "bold"), padx=14)
-        self.label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipady=12)
-        self.arrow = tk.Label(self.frame, text="v", bg=PANEL, fg=MUTED, font=("TkDefaultFont", 13, "bold"), width=3)
+        self.label = tk.Label(self.frame, textvariable=self.variable, anchor=tk.W, bg=PANEL, fg=TEXT, font=(FONT_FAMILY, 13, "bold"), padx=14)
+        self.label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipady=10)
+        self.arrow = tk.Label(self.frame, text="v", bg=PANEL, fg=MUTED, font=(FONT_FAMILY, 11, "bold"), width=3)
         self.arrow.pack(side=tk.RIGHT, fill=tk.Y)
-        self.menu = tk.Menu(self.frame, tearoff=0, bg=PANEL, fg=TEXT, activebackground="#eef6f2", activeforeground=TEXT, borderwidth=0, font=("TkDefaultFont", 13))
+        self.menu = tk.Menu(self.frame, tearoff=0, bg=PANEL, fg=TEXT, activebackground="#eef6f2", activeforeground=TEXT, borderwidth=0, font=(FONT_FAMILY, 12))
         for widget in (self.frame, self.label, self.arrow):
             widget.bind("<Button-1>", self.open_menu)
             widget.configure(cursor="hand2")
@@ -115,9 +116,10 @@ class StyledEntry:
             insertbackground=TEXT,
             relief=tk.FLAT,
             borderwidth=0,
-            font=("TkDefaultFont", 15),
+            highlightthickness=0,
+            font=(FONT_FAMILY, 13),
         )
-        self.entry.pack(fill=tk.BOTH, expand=True, padx=14, pady=13)
+        self.entry.pack(fill=tk.BOTH, expand=True, padx=14, pady=11)
 
     def grid(self, *args, **kwargs) -> None:
         self.frame.grid(*args, **kwargs)
@@ -128,71 +130,106 @@ class StyledButton:
         self.command = command
         self.variant = variant
         self.state = tk.NORMAL
+        self.text = text
+        self.hover = False
         self.colors = self._colors(variant)
-        self.frame = tk.Frame(parent, bg=self.colors["bg"], highlightbackground=self.colors["border"], highlightthickness=1 if variant == "secondary" else 0)
-        self.label = tk.Label(
-            self.frame,
-            text=text,
-            bg=self.colors["bg"],
-            fg=self.colors["fg"],
-            font=("TkDefaultFont", 20 if variant == "primary" else 13, "bold"),
-            padx=36 if variant == "primary" else 18,
-            pady=16 if variant == "primary" else 12,
+        self.width = self.measure_width(text)
+        self.height = 58 if variant == "primary" else 48
+        self.canvas = tk.Canvas(
+            parent,
+            width=self.width,
+            height=self.height,
+            bg=SURFACE,
+            highlightthickness=0,
+            borderwidth=0,
         )
-        self.label.pack(fill=tk.BOTH, expand=True)
-        for widget in (self.frame, self.label):
-            widget.bind("<Button-1>", self.click)
-            widget.bind("<Enter>", lambda _event: self.set_hover(True))
-            widget.bind("<Leave>", lambda _event: self.set_hover(False))
-            widget.configure(cursor="hand2")
+        self.canvas.bind("<Button-1>", self.click)
+        self.canvas.bind("<Enter>", lambda _event: self.set_hover(True))
+        self.canvas.bind("<Leave>", lambda _event: self.set_hover(False))
+        self.canvas.configure(cursor="hand2")
+        self.draw()
 
     def _colors(self, variant: str) -> dict[str, str]:
         if variant == "primary":
             return {"bg": GREEN, "fg": "white", "active": GREEN_DARK, "disabled": "#9bb5af", "border": GREEN}
         return {"bg": PANEL, "fg": GREEN, "active": "#eef6f2", "disabled": "#edf4f1", "border": "#c9d9d6"}
 
+    def measure_width(self, text: str) -> int:
+        if self.variant == "primary":
+            return max(250, min(360, len(text) * 14 + 88))
+        return max(180, min(280, len(text) * 8 + 56))
+
     def grid(self, *args, **kwargs) -> None:
-        self.frame.grid(*args, **kwargs)
+        self.canvas.grid(*args, **kwargs)
 
     def pack(self, *args, **kwargs) -> None:
-        self.frame.pack(*args, **kwargs)
+        self.canvas.pack(*args, **kwargs)
 
     def pack_forget(self) -> None:
-        self.frame.pack_forget()
+        self.canvas.pack_forget()
 
     def configure(self, **kwargs) -> None:
         if "text" in kwargs:
-            self.label.configure(text=kwargs.pop("text"))
+            self.text = kwargs.pop("text")
+            self.width = self.measure_width(self.text)
+            self.canvas.configure(width=self.width)
         if "state" in kwargs:
             self.state = kwargs.pop("state")
             disabled = self.state == tk.DISABLED
-            background = self.colors["disabled"] if disabled else self.colors["bg"]
-            foreground = "#edf4f1" if self.variant == "primary" and disabled else self.colors["fg"]
-            self.frame.configure(bg=background)
-            self.label.configure(bg=background, fg=foreground)
-            for widget in (self.frame, self.label):
-                widget.configure(cursor="arrow" if disabled else "hand2")
+            self.canvas.configure(cursor="arrow" if disabled else "hand2")
         if kwargs:
-            self.frame.configure(**kwargs)
+            self.canvas.configure(**kwargs)
+        self.draw()
 
     def set_hover(self, active: bool) -> None:
+        self.hover = active
         if self.state == tk.DISABLED:
             return
-        background = self.colors["active"] if active else self.colors["bg"]
-        self.frame.configure(bg=background)
-        self.label.configure(bg=background)
+        self.draw()
 
     def click(self, _event=None) -> None:
         if self.state != tk.DISABLED:
             self.command()
+
+    def draw(self) -> None:
+        self.canvas.delete("all")
+        disabled = self.state == tk.DISABLED
+        fill = self.colors["disabled"] if disabled else self.colors["active"] if self.hover else self.colors["bg"]
+        outline = self.colors["border"] if self.variant == "secondary" else fill
+        foreground = "#edf4f1" if self.variant == "primary" and disabled else self.colors["fg"]
+        self.rounded_rect(1, 1, self.width - 1, self.height - 1, 8, fill=fill, outline=outline)
+        self.canvas.create_text(
+            self.width / 2,
+            self.height / 2,
+            text=self.text,
+            fill=foreground,
+            font=(FONT_FAMILY, 17 if self.variant == "primary" else 12, "bold"),
+        )
+
+    def rounded_rect(self, x1: int, y1: int, x2: int, y2: int, radius: int, **kwargs) -> None:
+        points = [
+            x1 + radius, y1,
+            x2 - radius, y1,
+            x2, y1,
+            x2, y1 + radius,
+            x2, y2 - radius,
+            x2, y2,
+            x2 - radius, y2,
+            x1 + radius, y2,
+            x1, y2,
+            x1, y2 - radius,
+            x1, y1 + radius,
+            x1, y1,
+        ]
+        self.canvas.create_polygon(points, smooth=True, splinesteps=12, **kwargs)
 
 
 class StyledProgress:
     def __init__(self, parent: tk.Widget, variable: tk.IntVar, maximum: int) -> None:
         self.variable = variable
         self.maximum = maximum
-        self.track = tk.Frame(parent, bg=PROGRESS_BG, height=14)
-        self.fill = tk.Frame(self.track, bg=PROGRESS_FG, height=14)
+        self.track = tk.Frame(parent, bg=PROGRESS_BG, height=10)
+        self.fill = tk.Frame(self.track, bg=PROGRESS_FG, height=10)
         self.variable.trace_add("write", lambda *_args: self.update())
         self.track.bind("<Configure>", lambda _event: self.update())
 
@@ -208,6 +245,30 @@ class StyledProgress:
             return
         ratio = max(0, min(self.variable.get(), self.maximum)) / self.maximum
         self.fill.place(x=0, y=0, width=int(width * ratio), relheight=1)
+
+
+class ScrollablePage:
+    def __init__(self, root: tk.Tk) -> None:
+        self.canvas = tk.Canvas(root, bg=BG, highlightthickness=0, borderwidth=0)
+        self.inner = tk.Frame(self.canvas, bg=BG)
+        self.window_id = self.canvas.create_window((0, 0), window=self.inner, anchor=tk.NW)
+        self.canvas.bind("<Configure>", self.resize)
+        self.inner.bind("<Configure>", self.update_scroll_region)
+        self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+        self.canvas.bind_all("<Button-4>", lambda _event: self.canvas.yview_scroll(-3, "units"))
+        self.canvas.bind_all("<Button-5>", lambda _event: self.canvas.yview_scroll(3, "units"))
+
+    def pack(self, *args, **kwargs) -> None:
+        self.canvas.pack(*args, **kwargs)
+
+    def resize(self, event) -> None:
+        self.canvas.itemconfigure(self.window_id, width=event.width)
+
+    def update_scroll_region(self, _event=None) -> None:
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def on_mousewheel(self, event) -> None:
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
 
 class ViewerApp:
@@ -239,26 +300,31 @@ class ViewerApp:
 
     def build_ui(self) -> None:
         self.root.title(self.tr("app_title"))
-        self.root.geometry("1040x780")
-        self.root.minsize(940, 700)
+        width = min(1080, max(920, self.root.winfo_screenwidth() - 120))
+        height = min(920, max(760, self.root.winfo_screenheight() - 120))
+        self.root.geometry(f"{width}x{height}")
+        self.root.minsize(860, 680)
         self.root.configure(bg=BG)
         self.configure_styles()
 
-        shell = tk.Frame(self.root, bg=SURFACE, highlightbackground="#d6e2de", highlightthickness=1)
-        shell.pack(fill=tk.BOTH, expand=True, padx=34, pady=30)
+        page = ScrollablePage(self.root)
+        page.pack(fill=tk.BOTH, expand=True)
 
-        header = tk.Frame(shell, bg=GREEN, height=94)
+        shell = tk.Frame(page.inner, bg=SURFACE, highlightbackground="#d6e2de", highlightthickness=1)
+        shell.pack(fill=tk.BOTH, expand=True, padx=32, pady=28)
+
+        header = tk.Frame(shell, bg=GREEN, height=78)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
         controls = tk.Frame(header, bg=GREEN)
-        controls.pack(side=tk.LEFT, padx=(40, 24))
+        controls.pack(side=tk.LEFT, padx=(38, 22))
         for index, color in enumerate(("#c7dddd", "#9fc0bb", "#729994")):
-            dot = tk.Canvas(controls, width=20, height=20, bg=GREEN, highlightthickness=0)
-            dot.create_oval(3, 3, 17, 17, fill=color, outline=color)
+            dot = tk.Canvas(controls, width=18, height=18, bg=GREEN, highlightthickness=0)
+            dot.create_oval(3, 3, 15, 15, fill=color, outline=color)
             dot.grid(row=0, column=index, padx=5)
-        tk.Label(header, text=self.tr("app_title"), bg=GREEN, fg="white", font=("TkDefaultFont", 30, "bold")).pack(side=tk.LEFT)
+        tk.Label(header, text=self.tr("app_title"), bg=GREEN, fg="white", font=(FONT_FAMILY, 26, "bold")).pack(side=tk.LEFT)
 
-        frame = tk.Frame(shell, bg=SURFACE, padx=42, pady=34)
+        frame = tk.Frame(shell, bg=SURFACE, padx=42, pady=28)
         frame.pack(fill=tk.BOTH, expand=True)
         frame.columnconfigure(1, weight=1)
         frame.columnconfigure(2, weight=0)
@@ -269,30 +335,30 @@ class ViewerApp:
         row = 0
 
         self.labels["zip_file"] = self.form_label(frame, self.tr("zip_file"), row, 0)
-        self.entry(frame, self.zip_path).grid(row=row + 1, column=0, columnspan=2, sticky=tk.EW, pady=(0, 16))
+        self.entry(frame, self.zip_path).grid(row=row + 1, column=0, columnspan=2, sticky=tk.EW, pady=(0, 12))
         self.buttons["choose_zip"] = self.secondary_button(frame, self.tr("choose_zip"), self.choose_zip)
-        self.buttons["choose_zip"].grid(row=row + 1, column=2, padx=(12, 0), pady=(0, 16), sticky=tk.NS)
+        self.buttons["choose_zip"].grid(row=row + 1, column=2, padx=(12, 0), pady=(0, 12), sticky=tk.NS)
         row += 2
 
         self.labels["output_folder"] = self.form_label(frame, self.tr("output_folder"), row, 0)
-        self.entry(frame, self.output_path).grid(row=row + 1, column=0, columnspan=2, sticky=tk.EW, pady=(0, 16))
+        self.entry(frame, self.output_path).grid(row=row + 1, column=0, columnspan=2, sticky=tk.EW, pady=(0, 12))
         self.buttons["choose_output"] = self.secondary_button(frame, self.tr("choose_output"), self.choose_output)
-        self.buttons["choose_output"].grid(row=row + 1, column=2, padx=(12, 0), pady=(0, 16), sticky=tk.NS)
+        self.buttons["choose_output"].grid(row=row + 1, column=2, padx=(12, 0), pady=(0, 12), sticky=tk.NS)
         row += 2
 
         self.labels["owner"] = self.form_label(frame, self.tr("owner"), row, 0)
         self.owner_box = StyledSelect(frame, self.owner, [], command=self.update_generate_state)
         self.owner_box.configure(state="disabled")
-        self.owner_box.grid(row=row + 1, column=0, columnspan=3, sticky=tk.EW, pady=(0, 16))
+        self.owner_box.grid(row=row + 1, column=0, columnspan=3, sticky=tk.EW, pady=(0, 12))
         row += 2
 
         self.labels["language"] = self.form_label(frame, self.tr("language"), row, 0)
         self.language_box = StyledSelect(frame, self.language, SUPPORTED_LANGUAGES, command=self.change_language)
-        self.language_box.grid(row=row + 1, column=0, columnspan=3, sticky=tk.EW, pady=(0, 16))
+        self.language_box.grid(row=row + 1, column=0, columnspan=3, sticky=tk.EW, pady=(0, 12))
         row += 2
 
         dates = tk.Frame(frame, bg=SURFACE)
-        dates.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 18))
+        dates.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 14))
         dates.columnconfigure(0, weight=1)
         dates.columnconfigure(1, weight=1)
         date_from_box = tk.Frame(dates, bg=SURFACE)
@@ -314,28 +380,28 @@ class ViewerApp:
         row += 1
 
         self.preview_card = tk.Frame(frame, bg=PANEL, highlightbackground="#d8e8e5", highlightthickness=1, padx=20, pady=16)
-        self.preview_card.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 18))
-        self.preview_label = tk.Label(self.preview_card, textvariable=self.preview, justify=tk.LEFT, anchor=tk.W, wraplength=820, bg=PANEL, fg=MUTED, font=("TkDefaultFont", 15))
+        self.preview_card.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 14))
+        self.preview_label = tk.Label(self.preview_card, textvariable=self.preview, justify=tk.LEFT, anchor=tk.W, wraplength=820, bg=PANEL, fg=MUTED, font=(FONT_FAMILY, 13))
         self.preview_label.pack(fill=tk.X)
         row += 1
 
-        self.check_auto_open = tk.Checkbutton(frame, text=self.tr("auto_open"), variable=self.auto_open, bg=SURFACE, fg=MUTED, activebackground=SURFACE, activeforeground=TEXT, selectcolor=PANEL, font=("TkDefaultFont", 13), borderwidth=0, highlightthickness=0)
-        self.check_auto_open.grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=(0, 14))
+        self.check_auto_open = tk.Checkbutton(frame, text=self.tr("auto_open"), variable=self.auto_open, bg=SURFACE, fg=MUTED, activebackground=SURFACE, activeforeground=TEXT, selectcolor=PANEL, font=(FONT_FAMILY, 12), borderwidth=0, highlightthickness=0)
+        self.check_auto_open.grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=(0, 12))
         row += 1
 
         self.progress_bar = StyledProgress(frame, self.progress, maximum=5)
-        self.progress_bar.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 20))
+        self.progress_bar.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 16))
         row += 1
 
         actions = tk.Frame(frame, bg=SURFACE)
-        actions.grid(row=row, column=0, columnspan=3, sticky=tk.E, pady=(0, 16))
+        actions.grid(row=row, column=0, columnspan=3, sticky=tk.E, pady=(0, 12))
         self.buttons["generate"] = self.primary_button(actions, self.tr("generate"), self.generate)
         self.buttons["generate"].pack(side=tk.LEFT)
         self.buttons["open_output"] = self.secondary_button(actions, self.tr("open_output"), self.open_output)
         self.buttons["open_browser"] = self.secondary_button(actions, self.tr("open_browser"), self.open_browser)
         row += 1
 
-        tk.Label(frame, textvariable=self.status, bg=SURFACE, fg=MUTED, anchor=tk.W, font=("TkDefaultFont", 12)).grid(row=row, column=0, columnspan=3, sticky=tk.W)
+        tk.Label(frame, textvariable=self.status, bg=SURFACE, fg=MUTED, anchor=tk.W, font=(FONT_FAMILY, 11)).grid(row=row, column=0, columnspan=3, sticky=tk.W)
 
     def configure_styles(self) -> None:
         style = ttk.Style(self.root)
@@ -351,12 +417,12 @@ class ViewerApp:
         return StyledButton(parent, text, command, variant="secondary")
 
     def form_label(self, parent: tk.Widget, text: str, row: int, column: int) -> tk.Label:
-        label = tk.Label(parent, text=text, bg=SURFACE, fg=MUTED, font=("TkDefaultFont", 16, "bold"))
+        label = tk.Label(parent, text=text, bg=SURFACE, fg=MUTED, font=(FONT_FAMILY, 14, "bold"))
         label.grid(row=row, column=column, sticky=tk.W, pady=(0, 8))
         return label
 
     def hint_label(self, parent: tk.Widget, text: str) -> tk.Label:
-        return tk.Label(parent, text=text, bg=SURFACE, fg=MUTED, font=("TkDefaultFont", 11))
+        return tk.Label(parent, text=text, bg=SURFACE, fg=MUTED, font=(FONT_FAMILY, 10))
 
     def hide_generated_actions(self) -> None:
         self.buttons["open_output"].pack_forget()
