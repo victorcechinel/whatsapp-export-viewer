@@ -22,3 +22,13 @@ def test_cli_accepts_expected_options():
     assert args.language == "es"
     assert args.date_from == "01/06/2026"
     assert args.date_to == "30/06/2026"
+
+
+def test_cli_accepts_locale_alias():
+    args = build_parser().parse_args([
+        "chat.zip",
+        "--locale",
+        "pt-BR",
+    ])
+
+    assert args.language == "pt-BR"

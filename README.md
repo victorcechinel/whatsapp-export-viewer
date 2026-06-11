@@ -83,7 +83,7 @@ Convert a chat:
 whatsapp-export-viewer "WhatsApp Chat.zip" \
   --output conversa-html \
   --owner "Your Name" \
-  --language en \
+  --locale en \
   --date-from 06/01/2026 \
   --date-to 06/30/2026
 ```
@@ -94,8 +94,8 @@ Useful options:
 | --- | --- |
 | `--output`, `-o` | Output folder for the static website |
 | `--owner "Name"` | Participant rendered as “me”, aligned right |
-| `--language en|pt-BR|es` | Language used by the generated offline viewer |
-| `--date-from` | Optional first date included in the generated archive. Uses `MM/DD/YYYY` with `--language en`, `DD/MM/YYYY` with `pt-BR` or `es`, or `YYYY-MM-DD` in any language |
+| `--locale en|pt-BR|es`, `--language en|pt-BR|es` | Language used by the generated offline viewer |
+| `--date-from` | Optional first date included in the generated archive. Uses `MM/DD/YYYY` with `--locale en`, `DD/MM/YYYY` with `pt-BR` or `es`, or `YYYY-MM-DD` in any language |
 | `--date-to` | Optional last date included in the generated archive. Uses the same format rules as `--date-from` |
 | `--version` | Print the installed version |
 

@@ -5,6 +5,11 @@ import { fileURLToPath } from "node:url";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const docs = join(root, "docs");
 const pages = ["en", "pt-BR", "es"];
+const localeExamples = {
+  en: { locale: "--locale en", mask: "MM/DD/YYYY" },
+  "pt-BR": { locale: "--locale pt-BR", mask: "DD/MM/AAAA" },
+  es: { locale: "--locale es", mask: "DD/MM/AAAA" },
+};
 const errors = [];
 
 function read(relativePath) {
@@ -51,6 +56,8 @@ function validateLocalizedPage(lang) {
   if (!/<h1>[^<]+WhatsApp[^<]+<\/h1>/i.test(html)) fail(`${page}: h1 should describe WhatsApp use case`);
   if (!html.includes('<script type="application/ld+json">')) fail(`${page}: missing SoftwareApplication JSON-LD`);
   if (!html.includes('rel="canonical"')) fail(`${page}: missing canonical link`);
+  if (!html.includes(localeExamples[lang].locale)) fail(`${page}: CLI example should include ${localeExamples[lang].locale}`);
+  if (!html.includes(localeExamples[lang].mask)) fail(`${page}: date mask should be localized as ${localeExamples[lang].mask}`);
 
   for (const expectedLang of [...pages, "x-default"]) {
     if (!html.includes(`hreflang="${expectedLang}"`)) {
