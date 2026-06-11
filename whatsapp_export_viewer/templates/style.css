@@ -27,6 +27,8 @@ body {
 .controls input { width: 100%; border: 1px solid var(--line); background: white; border-radius: 7px; padding: 10px 12px; font-size: 14px; }
 .search-row, .date-filters { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; }
 .date-filters { grid-template-columns: 1fr 1fr; }
+.search-status { color: var(--muted); font-size: 12px; min-height: 16px; padding: 0 2px; }
+.controls input.invalid { border-color: #d93025; background: #fff8f7; }
 .icon-button { width: 38px; border: 1px solid var(--line); background: white; border-radius: 7px; font-size: 20px; line-height: 1; cursor: pointer; color: var(--text); }
 .toggle { width: 100%; border: 1px solid var(--line); background: white; border-radius: 7px; padding: 10px 12px; color: var(--text); cursor: pointer; text-align: left; font: inherit; }
 .toggle[aria-pressed="true"] { background: rgba(0, 168, 132, .12); color: #075e54; font-weight: 700; }
@@ -118,6 +120,9 @@ mark { background: #ffe66d; color: inherit; border-radius: 3px; padding: 0 2px; 
 .compact .bubble { padding: 5px 7px; font-size: 13px; }
 .compact .sender { font-size: 12px; margin-bottom: 1px; }
 .compact .meta { margin-top: 2px; }
+.compact .attachment { margin-top: 4px; }
+.compact .attachment img { max-height: 220px; }
+.compact .date-divider { margin: 10px auto; padding: 5px 10px; }
 
 @media (max-width: 820px) {
   .app { grid-template-columns: 1fr; }

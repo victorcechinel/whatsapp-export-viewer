@@ -19,6 +19,7 @@
           <button id="prevResult" class="icon-button" type="button" title="{{viewer_previous_result}}">‹</button>
           <button id="nextResult" class="icon-button" type="button" title="{{viewer_next_result}}">›</button>
         </div>
+        <div id="searchStatus" class="search-status">{{viewer_no_search}}</div>
         <div id="typeDropdown" class="custom-select" data-value="all">
           <button id="typeButton" type="button" aria-haspopup="listbox" aria-expanded="false">{{viewer_all_types}}</button>
           <div id="typeOptions" class="custom-options" role="listbox"></div>
@@ -31,6 +32,7 @@
           <input id="dateFrom" type="text" inputmode="numeric" placeholder="{{viewer_from_date}}">
           <input id="dateTo" type="text" inputmode="numeric" placeholder="{{viewer_to_date}}">
         </div>
+        <button id="clearFilters" class="toggle" type="button">{{viewer_clear_filters}}</button>
         <button id="compactMode" class="toggle" type="button" aria-pressed="false">{{viewer_compact_mode}}</button>
       </section>
       <section class="stats">

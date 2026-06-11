@@ -36,12 +36,17 @@ def test_builds_offline_export_with_organized_media(tmp_path):
     assert "setType" in app_js
     assert "eventLabel" in app_js
     assert "goToResult" in app_js
+    assert "clearFilters" in app_js
+    assert "normalizeText" in app_js
+    assert "localStorage.setItem" in app_js
     assert "media-card ${esc(message.side" in app_js
     assert "Voltar" in index_html
     assert 'data-kind="images"' in index_html
     assert 'id="participantDropdown"' in index_html
     assert 'id="typeDropdown"' in index_html
     assert 'id="dateFrom"' in index_html
+    assert 'id="searchStatus"' in index_html
+    assert 'id="clearFilters"' in index_html
     assert 'id="compactMode"' in index_html
     assert '<select id="participant"' not in index_html
     assert 'class="gallery"' not in index_html

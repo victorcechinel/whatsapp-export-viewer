@@ -34,6 +34,10 @@ const fallbackTranslations = {
   viewer_view_once_message: "View once media",
   viewer_edited: "edited",
   viewer_missing_attachment: "Attachment not found in the export: {name}",
+  viewer_no_search: "Type to search messages",
+  viewer_search_results: "{count} search results",
+  viewer_clear_filters: "Clear filters",
+  viewer_invalid_date: "Invalid date",
 };
 const typeOptions = [
   ["all", "viewer_all_types"],
@@ -63,6 +67,8 @@ async function load() {
 }
 
 function hydrate() {
+  document.body.classList.toggle("compact", localStorage.getItem("compactMode") === "true");
+  $("#compactMode").setAttribute("aria-pressed", String(document.body.classList.contains("compact")));
   $("#total").textContent = summary.total_messages || 0;
   $("#images").textContent = summary.media?.images || 0;
   $("#videos").textContent = summary.media?.videos || 0;
@@ -78,12 +84,29 @@ function hydrate() {
   setActiveMedia("");
 }
 
+function normalizeText(value) {
+  return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 function parseDateInput(value) {
   const text = value.trim();
   if (!text) return null;
   const matched = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!matched) return null;
-  return new Date(Number(matched[3]), Number(matched[2]) - 1, Number(matched[1]));
+  const day = Number(matched[1]);
+  const month = Number(matched[2]);
+  const year = Number(matched[3]);
+  const parsed = new Date(year, month - 1, day);
+  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) return null;
+  return parsed;
+}
+
+function validateDateInputs() {
+  for (const input of [$("#dateFrom"), $("#dateTo")]) {
+    const invalid = input.value.trim() && !parseDateInput(input.value);
+    input.classList.toggle("invalid", Boolean(invalid));
+    input.title = invalid ? t("viewer_invalid_date") : "";
+  }
 }
 
 function messageDay(message) {
@@ -114,12 +137,14 @@ function matchesType(message) {
 
 function matchesQuery(message, query) {
   if (!query) return true;
-  const haystack = [message.text, message.sender, message.type, ...(message.attachments || []).map((attachment) => attachment.name), ...(message.missing_attachments || [])].join(" ").toLowerCase();
-  return haystack.includes(query);
+  const terms = normalizeText(query).split(/\s+/).filter(Boolean);
+  const haystack = normalizeText([message.text, message.sender, message.type, ...(message.attachments || []).map((attachment) => attachment.name), ...(message.missing_attachments || [])].join(" "));
+  return terms.every((term) => haystack.includes(term));
 }
 
 function applyFilters() {
-  const query = $("#search").value.trim().toLowerCase();
+  validateDateInputs();
+  const query = $("#search").value.trim();
   filtered = messages.filter((message) => (
     (!selectedParticipant || message.sender === selectedParticipant) &&
     matchesType(message) &&
@@ -129,6 +154,7 @@ function applyFilters() {
   currentResult = -1;
   if (view === "chat") renderChat();
   else renderMedia();
+  updateSearchStatus();
 }
 
 function setParticipant(name) {
@@ -246,10 +272,53 @@ function renderUntilDate(date) {
 
 function highlightText(value) {
   const query = $("#search").value.trim();
-  const safe = esc(value);
-  if (!query) return safe;
-  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return safe.replace(new RegExp(`(${escapedQuery})`, "gi"), "<mark>$1</mark>");
+  const text = String(value ?? "");
+  if (!query) return esc(text);
+  const normalizedChars = [];
+  const originalIndex = [];
+  Array.from(text).forEach((char, index) => {
+    const normalized = normalizeText(char);
+    Array.from(normalized).forEach((normalizedChar) => {
+      normalizedChars.push(normalizedChar);
+      originalIndex.push(index);
+    });
+  });
+  const normalizedText = normalizedChars.join("");
+  const ranges = [];
+  for (const term of normalizeText(query).split(/\s+/).filter(Boolean)) {
+    let from = 0;
+    while (from < normalizedText.length) {
+      const found = normalizedText.indexOf(term, from);
+      if (found === -1) break;
+      ranges.push([originalIndex[found], originalIndex[found + term.length - 1] + 1]);
+      from = found + term.length;
+    }
+  }
+  if (!ranges.length) return esc(text);
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const range of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
+    else merged.push(range);
+  }
+  let html = "", cursor = 0;
+  for (const [start, end] of merged) {
+    html += esc(text.slice(cursor, start));
+    html += `<mark>${esc(text.slice(start, end))}</mark>`;
+    cursor = end;
+  }
+  return html + esc(text.slice(cursor));
+}
+
+function updateSearchStatus() {
+  const query = $("#search").value.trim();
+  if (!query) {
+    $("#searchStatus").textContent = t("viewer_no_search");
+    return;
+  }
+  const count = renderedSearchResults().length || filtered.length;
+  $("#searchStatus").textContent = t("viewer_search_results", { count });
 }
 
 function eventLabel(message) {
@@ -334,7 +403,7 @@ function mediaCard({ message, attachment }) {
 }
 
 function renderedSearchResults() {
-  return Array.from(document.querySelectorAll(".msg mark")).map((mark) => mark.closest(".msg")).filter(Boolean);
+  return Array.from(new Set(Array.from(document.querySelectorAll(".msg mark")).map((mark) => mark.closest(".msg")).filter(Boolean)));
 }
 
 function goToResult(direction) {
@@ -346,10 +415,32 @@ function goToResult(direction) {
   document.querySelectorAll(".msg.current-result").forEach((item) => item.classList.remove("current-result"));
   results[currentResult].classList.add("current-result");
   results[currentResult].scrollIntoView({ behavior: "smooth", block: "center" });
+  $("#searchStatus").textContent = `${currentResult + 1}/${results.length} · ${t("viewer_search_results", { count: results.length })}`;
+}
+
+function clearFilters() {
+  $("#search").value = "";
+  $("#dateFrom").value = "";
+  $("#dateTo").value = "";
+  setParticipant("");
+  setType("all");
+  showChat();
 }
 
 document.addEventListener("input", (event) => {
   if (event.target.matches("#search, #dateFrom, #dateTo")) applyFilters();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (!event.target.matches("#search")) return;
+  if (event.key === "Enter") {
+    event.preventDefault();
+    goToResult(event.shiftKey ? -1 : 1);
+  }
+  if (event.key === "Escape") {
+    event.target.value = "";
+    applyFilters();
+  }
 });
 
 document.addEventListener("click", (event) => {
@@ -395,9 +486,11 @@ document.addEventListener("click", (event) => {
   if (event.target.matches("#backToChat")) showChat();
   if (event.target.matches("#prevResult")) goToResult(-1);
   if (event.target.matches("#nextResult")) goToResult(1);
+  if (event.target.matches("#clearFilters")) clearFilters();
   if (event.target.matches("#compactMode")) {
     document.body.classList.toggle("compact");
     event.target.setAttribute("aria-pressed", String(document.body.classList.contains("compact")));
+    localStorage.setItem("compactMode", String(document.body.classList.contains("compact")));
   }
   const stat = event.target.closest(".stats .stat");
   if (stat?.dataset.view === "chat") showChat();
