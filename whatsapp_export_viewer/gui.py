@@ -5,6 +5,8 @@ import subprocess
 import sys
 import threading
 import webbrowser
+from calendar import Calendar, month_name
+from datetime import date, datetime
 from pathlib import Path
 
 from .builder import build_export, inspect_export
@@ -26,6 +28,15 @@ LINE = "#d7e2de"
 PROGRESS_BG = "#d9e5e1"
 PROGRESS_FG = "#00a884"
 FONT_FAMILY = "TkDefaultFont"
+
+
+def format_gui_date(value: date, language: str) -> str:
+    return value.strftime("%m/%d/%Y") if normalize_language(language) == "en" else value.strftime("%d/%m/%Y")
+
+
+def parse_gui_date(value: str, language: str) -> date:
+    fmt = "%m/%d/%Y" if normalize_language(language) == "en" else "%d/%m/%Y"
+    return datetime.strptime(value, fmt).date()
 
 
 def load_tkinter() -> bool:
@@ -50,12 +61,12 @@ class StyledSelect:
         self.command = command
         self.values = list(values or [])
         self.state = "normal"
+        self.popup: tk.Toplevel | None = None
         self.frame = tk.Frame(parent, bg=PANEL, highlightbackground=LINE, highlightcolor=GREEN, highlightthickness=1)
         self.label = tk.Label(self.frame, textvariable=self.variable, anchor=tk.W, bg=PANEL, fg=TEXT, font=(FONT_FAMILY, 13, "bold"), padx=14)
         self.label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, ipady=10)
         self.arrow = tk.Label(self.frame, text="v", bg=PANEL, fg=MUTED, font=(FONT_FAMILY, 11, "bold"), width=3)
         self.arrow.pack(side=tk.RIGHT, fill=tk.Y)
-        self.menu = tk.Menu(self.frame, tearoff=0, bg=PANEL, fg=TEXT, activebackground="#eef6f2", activeforeground=TEXT, borderwidth=0, font=(FONT_FAMILY, 12))
         for widget in (self.frame, self.label, self.arrow):
             widget.bind("<Button-1>", self.open_menu)
             widget.configure(cursor="hand2")
@@ -77,9 +88,7 @@ class StyledSelect:
 
     def set_values(self, values: list[str]) -> None:
         self.values = values
-        self.menu.delete(0, tk.END)
-        for value in self.values:
-            self.menu.add_command(label=value, command=lambda item=value: self.select(item))
+        self.close_popup()
 
     def set_state(self, state: str) -> None:
         self.state = state
@@ -96,13 +105,47 @@ class StyledSelect:
 
     def select(self, value: str) -> None:
         self.variable.set(value)
+        self.close_popup()
         if self.command:
             self.command()
 
     def open_menu(self, _event=None) -> None:
         if self.state == "disabled" or not self.values:
             return
-        self.menu.tk_popup(self.frame.winfo_rootx(), self.frame.winfo_rooty() + self.frame.winfo_height())
+        if self.popup and self.popup.winfo_exists():
+            self.close_popup()
+            return
+        self.popup = tk.Toplevel(self.frame)
+        self.popup.overrideredirect(True)
+        self.popup.configure(bg=PANEL, highlightbackground=LINE, highlightthickness=1)
+        self.popup.transient(self.frame.winfo_toplevel())
+        width = self.frame.winfo_width()
+        height = min(max(len(self.values), 1) * 42, 280)
+        x = self.frame.winfo_rootx()
+        y = self.frame.winfo_rooty() + self.frame.winfo_height() + 4
+        self.popup.geometry(f"{width}x{height}+{x}+{y}")
+        for index, value in enumerate(self.values):
+            item = tk.Label(
+                self.popup,
+                text=value,
+                bg="#eef6f2" if value == self.variable.get() else PANEL,
+                fg=TEXT,
+                anchor=tk.W,
+                font=(FONT_FAMILY, 12, "bold" if value == self.variable.get() else "normal"),
+                padx=14,
+                pady=10,
+            )
+            item.pack(fill=tk.X)
+            item.bind("<Button-1>", lambda _event, item_value=value: self.select(item_value))
+            item.bind("<Enter>", lambda event: event.widget.configure(bg="#eef6f2"))
+            item.bind("<Leave>", lambda event, item_value=value: event.widget.configure(bg="#eef6f2" if item_value == self.variable.get() else PANEL))
+        self.popup.bind("<FocusOut>", lambda _event: self.close_popup())
+        self.popup.focus_force()
+
+    def close_popup(self) -> None:
+        if self.popup and self.popup.winfo_exists():
+            self.popup.destroy()
+        self.popup = None
 
 
 class StyledEntry:
@@ -123,6 +166,131 @@ class StyledEntry:
 
     def grid(self, *args, **kwargs) -> None:
         self.frame.grid(*args, **kwargs)
+
+
+class DateInput:
+    def __init__(self, parent: tk.Widget, variable: tk.StringVar, language_getter) -> None:
+        self.variable = variable
+        self.language_getter = language_getter
+        self.frame = tk.Frame(parent, bg=PANEL, highlightbackground=LINE, highlightcolor=GREEN, highlightthickness=1)
+        self.entry = tk.Entry(
+            self.frame,
+            textvariable=variable,
+            bg=PANEL,
+            fg=TEXT,
+            insertbackground=TEXT,
+            relief=tk.FLAT,
+            borderwidth=0,
+            highlightthickness=0,
+            font=(FONT_FAMILY, 13),
+        )
+        self.entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(14, 6), pady=11)
+        self.button = tk.Label(self.frame, text="Cal", bg="#eef6f2", fg=GREEN, font=(FONT_FAMILY, 10, "bold"), padx=10, pady=7)
+        self.button.pack(side=tk.RIGHT, padx=(0, 8))
+        self.button.configure(cursor="hand2")
+        self.button.bind("<Button-1>", self.open_picker)
+
+    def grid(self, *args, **kwargs) -> None:
+        self.frame.grid(*args, **kwargs)
+
+    def open_picker(self, _event=None) -> None:
+        selected = None
+        try:
+            selected = parse_gui_date(self.variable.get().strip(), self.language_getter())
+        except ValueError:
+            selected = date.today()
+        CalendarPopup(self.frame, selected, self.language_getter, self.set_date)
+
+    def set_date(self, value: date) -> None:
+        self.variable.set(format_gui_date(value, self.language_getter()))
+
+
+class CalendarPopup:
+    def __init__(self, anchor: tk.Widget, initial: date, language_getter, command) -> None:
+        self.anchor = anchor
+        self.language_getter = language_getter
+        self.command = command
+        self.year = initial.year
+        self.month = initial.month
+        self.popup = tk.Toplevel(anchor)
+        self.popup.overrideredirect(True)
+        self.popup.configure(bg=PANEL, highlightbackground=LINE, highlightthickness=1)
+        self.popup.transient(anchor.winfo_toplevel())
+        x = anchor.winfo_rootx()
+        y = anchor.winfo_rooty() + anchor.winfo_height() + 4
+        self.popup.geometry(f"300x330+{x}+{y}")
+        self.body = tk.Frame(self.popup, bg=PANEL, padx=12, pady=12)
+        self.body.pack(fill=tk.BOTH, expand=True)
+        self.popup.bind("<FocusOut>", lambda _event: self.close())
+        self.render()
+        self.popup.focus_force()
+
+    def render(self) -> None:
+        for child in self.body.winfo_children():
+            child.destroy()
+        header = tk.Frame(self.body, bg=PANEL)
+        header.grid(row=0, column=0, columnspan=7, sticky=tk.EW, pady=(0, 8))
+        StyledMiniButton(header, "<", self.previous_month).pack(side=tk.LEFT)
+        tk.Label(
+            header,
+            text=f"{month_name[self.month]} {self.year}",
+            bg=PANEL,
+            fg=TEXT,
+            font=(FONT_FAMILY, 12, "bold"),
+        ).pack(side=tk.LEFT, expand=True)
+        StyledMiniButton(header, ">", self.next_month).pack(side=tk.RIGHT)
+
+        weekdays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] if normalize_language(self.language_getter()) == "en" else ["Se", "Te", "Qa", "Qi", "Se", "Sa", "Do"]
+        for column, weekday in enumerate(weekdays):
+            tk.Label(self.body, text=weekday, bg=PANEL, fg=MUTED, font=(FONT_FAMILY, 9, "bold"), width=4).grid(row=1, column=column, pady=(0, 4))
+
+        today = date.today()
+        calendar = Calendar(firstweekday=0)
+        for row_index, week in enumerate(calendar.monthdatescalendar(self.year, self.month), start=2):
+            for column, day in enumerate(week):
+                in_month = day.month == self.month
+                bg = "#eef6f2" if day == today else PANEL
+                fg = TEXT if in_month else "#a5b1ad"
+                cell = tk.Label(self.body, text=str(day.day), bg=bg, fg=fg, width=4, height=2, font=(FONT_FAMILY, 10, "bold" if in_month else "normal"))
+                cell.grid(row=row_index, column=column, padx=1, pady=1)
+                cell.configure(cursor="hand2")
+                cell.bind("<Button-1>", lambda _event, value=day: self.pick(value))
+                cell.bind("<Enter>", lambda event: event.widget.configure(bg="#dff3ea"))
+                cell.bind("<Leave>", lambda event, value=day: event.widget.configure(bg="#eef6f2" if value == today else PANEL))
+
+    def previous_month(self) -> None:
+        self.month -= 1
+        if self.month == 0:
+            self.month = 12
+            self.year -= 1
+        self.render()
+
+    def next_month(self) -> None:
+        self.month += 1
+        if self.month == 13:
+            self.month = 1
+            self.year += 1
+        self.render()
+
+    def pick(self, value: date) -> None:
+        self.command(value)
+        self.close()
+
+    def close(self) -> None:
+        if self.popup.winfo_exists():
+            self.popup.destroy()
+
+
+class StyledMiniButton:
+    def __init__(self, parent: tk.Widget, text: str, command) -> None:
+        self.button = tk.Label(parent, text=text, bg="#eef6f2", fg=GREEN, width=3, font=(FONT_FAMILY, 11, "bold"))
+        self.button.configure(cursor="hand2")
+        self.button.bind("<Button-1>", lambda _event: command())
+        self.button.bind("<Enter>", lambda event: event.widget.configure(bg="#dff3ea"))
+        self.button.bind("<Leave>", lambda event: event.widget.configure(bg="#eef6f2"))
+
+    def pack(self, *args, **kwargs) -> None:
+        self.button.pack(*args, **kwargs)
 
 
 class StyledButton:
@@ -275,6 +443,7 @@ class ViewerApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.language = tk.StringVar(value=system_language())
+        self.current_language = self.language.get()
         self.text = load_translations(self.language.get())
         self.zip_path = tk.StringVar()
         self.output_path = tk.StringVar()
@@ -366,13 +535,13 @@ class ViewerApp:
         date_to_box = tk.Frame(dates, bg=SURFACE)
         date_to_box.grid(row=0, column=1, sticky=tk.EW, padx=(12, 0))
         self.labels["date_from"] = self.form_label(date_from_box, self.tr("date_from"), 0, 0)
-        self.entry(date_from_box, self.date_from).grid(row=1, column=0, sticky=tk.EW, pady=(0, 6))
+        self.date_input(date_from_box, self.date_from).grid(row=1, column=0, sticky=tk.EW, pady=(0, 6))
         date_from_format = self.hint_label(date_from_box, self.tr("date_format"))
         date_from_format.grid(row=2, column=0, sticky=tk.W)
         self.date_format_labels.append(date_from_format)
         date_from_box.columnconfigure(0, weight=1)
         self.labels["date_to"] = self.form_label(date_to_box, self.tr("date_to"), 0, 0)
-        self.entry(date_to_box, self.date_to).grid(row=1, column=0, sticky=tk.EW, pady=(0, 6))
+        self.date_input(date_to_box, self.date_to).grid(row=1, column=0, sticky=tk.EW, pady=(0, 6))
         date_to_format = self.hint_label(date_to_box, self.tr("date_format"))
         date_to_format.grid(row=2, column=0, sticky=tk.W)
         self.date_format_labels.append(date_to_format)
@@ -410,6 +579,9 @@ class ViewerApp:
     def entry(self, parent: tk.Widget, variable: tk.StringVar) -> StyledEntry:
         return StyledEntry(parent, variable)
 
+    def date_input(self, parent: tk.Widget, variable: tk.StringVar) -> DateInput:
+        return DateInput(parent, variable, lambda: self.language.get())
+
     def primary_button(self, parent: tk.Widget, text: str, command) -> StyledButton:
         return StyledButton(parent, text, command, variant="primary")
 
@@ -445,6 +617,10 @@ class ViewerApp:
         self.buttons["generate"].configure(state=tk.NORMAL if ready else tk.DISABLED)
 
     def change_language(self) -> None:
+        old_language = self.current_language
+        new_language = self.language.get()
+        self.reformat_date_inputs(old_language, new_language)
+        self.current_language = new_language
         self.text = load_translations(self.language.get())
         self.root.title(self.tr("app_title"))
         for key, label in self.labels.items():
@@ -460,6 +636,17 @@ class ViewerApp:
         self.generated_index = None
         self.hide_generated_actions()
         self.update_generate_state()
+
+    def reformat_date_inputs(self, old_language: str, new_language: str) -> None:
+        for variable in (self.date_from, self.date_to):
+            value = variable.get().strip()
+            if not value:
+                continue
+            try:
+                parsed = parse_gui_date(value, old_language)
+            except ValueError:
+                continue
+            variable.set(format_gui_date(parsed, new_language))
 
     def choose_zip(self) -> None:
         path = filedialog.askopenfilename(filetypes=[("WhatsApp ZIP", "*.zip"), ("All files", "*.*")])
