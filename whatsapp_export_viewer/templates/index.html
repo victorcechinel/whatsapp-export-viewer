@@ -10,8 +10,11 @@
   <div class="app">
     <aside class="sidebar">
       <header class="brand">
-        <h1>WhatsApp Export Viewer</h1>
-        <p>{{viewer_tagline}}</p>
+        <div class="brand-mark">W</div>
+        <div>
+          <h1>WhatsApp Export Viewer</h1>
+          <p>{{viewer_tagline}}</p>
+        </div>
       </header>
       <section class="controls">
         <div class="search-row">
@@ -42,8 +45,8 @@
         <button class="stat" type="button" data-kind="audios"><b id="audios">0</b><span>{{viewer_audios}}</span></button>
         <button class="stat" type="button" data-kind="documents"><b id="docs">0</b><span>{{viewer_documents}}</span></button>
       </section>
-      <section class="participants"><h2>{{viewer_participants}}</h2><div id="participants"></div></section>
-      <section class="dates"><h2>{{viewer_dates}}</h2><div id="dates"></div></section>
+      <section class="sidebar-section participants"><h2>{{viewer_participants}}</h2><div id="participants"></div></section>
+      <section class="sidebar-section dates"><h2>{{viewer_dates}}</h2><div id="dates"></div></section>
     </aside>
     <main class="main">
       <div class="topbar">
