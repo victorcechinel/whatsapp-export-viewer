@@ -1,3 +1,16 @@
+const platform =
+  navigator.userAgentData?.platform ||
+  navigator.platform ||
+  navigator.userAgent ||
+  "";
+const osClass = /win/i.test(platform)
+  ? "os-windows"
+  : /linux|android/i.test(platform)
+    ? "os-linux"
+    : "os-mac";
+
+document.documentElement.classList.add(osClass);
+
 document.querySelectorAll(".language-menu").forEach((menu) => {
   const button = menu.querySelector("button");
   button.addEventListener("click", () => {

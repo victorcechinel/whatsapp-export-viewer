@@ -61,83 +61,125 @@ class ViewerApp:
 
     def build_ui(self) -> None:
         self.root.title(self.tr("app_title"))
-        self.root.geometry("760x560")
-        self.root.minsize(680, 480)
+        self.root.geometry("900x720")
+        self.root.minsize(760, 640)
+        self.root.configure(bg="#eaf4ef")
+        self.configure_styles()
 
-        frame = ttk.Frame(self.root, padding=18)
+        shell = tk.Frame(self.root, bg="#f7f8f7", highlightbackground="#d6e2de", highlightthickness=1)
+        shell.pack(fill=tk.BOTH, expand=True, padx=28, pady=28)
+
+        header = tk.Frame(shell, bg="#075e54", height=86)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+        controls = tk.Frame(header, bg="#075e54")
+        controls.pack(side=tk.LEFT, padx=(28, 18))
+        for index, color in enumerate(("#c7dddd", "#9fc0bb", "#729994")):
+            dot = tk.Canvas(controls, width=18, height=18, bg="#075e54", highlightthickness=0)
+            dot.create_oval(3, 3, 15, 15, fill=color, outline=color)
+            dot.grid(row=0, column=index, padx=4)
+        tk.Label(header, text=self.tr("app_title"), bg="#075e54", fg="white", font=("TkDefaultFont", 24, "bold")).pack(side=tk.LEFT)
+
+        frame = tk.Frame(shell, bg="#f7f8f7", padx=34, pady=28)
         frame.pack(fill=tk.BOTH, expand=True)
         frame.columnconfigure(1, weight=1)
+        frame.columnconfigure(2, weight=0)
 
         self.labels: dict[str, ttk.Label] = {}
         self.buttons: dict[str, ttk.Button] = {}
         self.date_format_labels: list[ttk.Label] = []
         row = 0
 
-        self.labels["language"] = ttk.Label(frame, text=self.tr("language"))
-        self.labels["language"].grid(row=row, column=0, sticky=tk.W, pady=6)
-        language_box = ttk.Combobox(frame, textvariable=self.language, values=SUPPORTED_LANGUAGES, state="readonly")
-        language_box.grid(row=row, column=1, sticky=tk.EW, pady=6)
-        language_box.bind("<<ComboboxSelected>>", lambda _event: self.change_language())
-        row += 1
-
-        self.labels["zip_file"] = ttk.Label(frame, text=self.tr("zip_file"))
-        self.labels["zip_file"].grid(row=row, column=0, sticky=tk.W, pady=6)
-        ttk.Entry(frame, textvariable=self.zip_path).grid(row=row, column=1, sticky=tk.EW, pady=6)
+        self.labels["zip_file"] = self.form_label(frame, self.tr("zip_file"), row, 0)
+        ttk.Entry(frame, textvariable=self.zip_path, style="App.TEntry").grid(row=row + 1, column=0, columnspan=2, sticky=tk.EW, pady=(0, 16), ipady=10)
         self.buttons["choose_zip"] = ttk.Button(frame, text=self.tr("choose_zip"), command=self.choose_zip)
-        self.buttons["choose_zip"].grid(row=row, column=2, padx=(8, 0), pady=6)
-        row += 1
+        self.buttons["choose_zip"].grid(row=row + 1, column=2, padx=(12, 0), pady=(0, 16), sticky=tk.NS)
+        row += 2
 
-        self.labels["output_folder"] = ttk.Label(frame, text=self.tr("output_folder"))
-        self.labels["output_folder"].grid(row=row, column=0, sticky=tk.W, pady=6)
-        ttk.Entry(frame, textvariable=self.output_path).grid(row=row, column=1, sticky=tk.EW, pady=6)
+        self.labels["output_folder"] = self.form_label(frame, self.tr("output_folder"), row, 0)
+        ttk.Entry(frame, textvariable=self.output_path, style="App.TEntry").grid(row=row + 1, column=0, columnspan=2, sticky=tk.EW, pady=(0, 16), ipady=10)
         self.buttons["choose_output"] = ttk.Button(frame, text=self.tr("choose_output"), command=self.choose_output)
-        self.buttons["choose_output"].grid(row=row, column=2, padx=(8, 0), pady=6)
-        row += 1
+        self.buttons["choose_output"].grid(row=row + 1, column=2, padx=(12, 0), pady=(0, 16), sticky=tk.NS)
+        row += 2
 
-        self.labels["owner"] = ttk.Label(frame, text=self.tr("owner"))
-        self.labels["owner"].grid(row=row, column=0, sticky=tk.W, pady=6)
-        self.owner_box = ttk.Combobox(frame, textvariable=self.owner, values=[], state="disabled")
-        self.owner_box.grid(row=row, column=1, columnspan=2, sticky=tk.EW, pady=6)
+        self.labels["owner"] = self.form_label(frame, self.tr("owner"), row, 0)
+        self.owner_box = ttk.Combobox(frame, textvariable=self.owner, values=[], state="disabled", style="App.TCombobox")
+        self.owner_box.grid(row=row + 1, column=0, columnspan=3, sticky=tk.EW, pady=(0, 16), ipady=8)
         self.owner_box.bind("<<ComboboxSelected>>", lambda _event: self.update_generate_state())
-        row += 1
+        row += 2
 
-        self.labels["date_from"] = ttk.Label(frame, text=self.tr("date_from"))
-        self.labels["date_from"].grid(row=row, column=0, sticky=tk.W, pady=6)
-        ttk.Entry(frame, textvariable=self.date_from).grid(row=row, column=1, sticky=tk.EW, pady=6)
-        date_from_format = ttk.Label(frame, text=self.tr("date_format"))
-        date_from_format.grid(row=row, column=2, sticky=tk.W, padx=(8, 0), pady=6)
+        self.labels["language"] = self.form_label(frame, self.tr("language"), row, 0)
+        language_box = ttk.Combobox(frame, textvariable=self.language, values=SUPPORTED_LANGUAGES, state="readonly", style="App.TCombobox")
+        language_box.grid(row=row + 1, column=0, columnspan=3, sticky=tk.EW, pady=(0, 16), ipady=8)
+        language_box.bind("<<ComboboxSelected>>", lambda _event: self.change_language())
+        row += 2
+
+        dates = tk.Frame(frame, bg="#f7f8f7")
+        dates.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 18))
+        dates.columnconfigure(0, weight=1)
+        dates.columnconfigure(1, weight=1)
+        date_from_box = tk.Frame(dates, bg="#f7f8f7")
+        date_from_box.grid(row=0, column=0, sticky=tk.EW, padx=(0, 10))
+        date_to_box = tk.Frame(dates, bg="#f7f8f7")
+        date_to_box.grid(row=0, column=1, sticky=tk.EW, padx=(10, 0))
+        self.labels["date_from"] = self.form_label(date_from_box, self.tr("date_from"), 0, 0)
+        ttk.Entry(date_from_box, textvariable=self.date_from, style="App.TEntry").grid(row=1, column=0, sticky=tk.EW, pady=(0, 4), ipady=10)
+        date_from_format = ttk.Label(date_from_box, text=self.tr("date_format"), style="Hint.TLabel")
+        date_from_format.grid(row=2, column=0, sticky=tk.W)
         self.date_format_labels.append(date_from_format)
-        row += 1
-
-        self.labels["date_to"] = ttk.Label(frame, text=self.tr("date_to"))
-        self.labels["date_to"].grid(row=row, column=0, sticky=tk.W, pady=6)
-        ttk.Entry(frame, textvariable=self.date_to).grid(row=row, column=1, sticky=tk.EW, pady=6)
-        date_to_format = ttk.Label(frame, text=self.tr("date_format"))
-        date_to_format.grid(row=row, column=2, sticky=tk.W, padx=(8, 0), pady=6)
+        date_from_box.columnconfigure(0, weight=1)
+        self.labels["date_to"] = self.form_label(date_to_box, self.tr("date_to"), 0, 0)
+        ttk.Entry(date_to_box, textvariable=self.date_to, style="App.TEntry").grid(row=1, column=0, sticky=tk.EW, pady=(0, 4), ipady=10)
+        date_to_format = ttk.Label(date_to_box, text=self.tr("date_format"), style="Hint.TLabel")
+        date_to_format.grid(row=2, column=0, sticky=tk.W)
         self.date_format_labels.append(date_to_format)
+        date_to_box.columnconfigure(0, weight=1)
         row += 1
 
-        self.check_auto_open = ttk.Checkbutton(frame, text=self.tr("auto_open"), variable=self.auto_open)
-        self.check_auto_open.grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=6)
+        self.preview_card = tk.Frame(frame, bg="white", highlightbackground="#d8e8e5", highlightthickness=1, padx=18, pady=14)
+        self.preview_card.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 18))
+        self.preview_label = tk.Label(self.preview_card, textvariable=self.preview, justify=tk.LEFT, wraplength=760, bg="white", fg="#5f6f69", font=("TkDefaultFont", 13))
+        self.preview_label.pack(fill=tk.X)
         row += 1
 
-        self.preview_label = ttk.Label(frame, textvariable=self.preview, justify=tk.LEFT, wraplength=680)
-        self.preview_label.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(6, 2))
+        self.check_auto_open = ttk.Checkbutton(frame, text=self.tr("auto_open"), variable=self.auto_open, style="App.TCheckbutton")
+        self.check_auto_open.grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=(0, 14))
         row += 1
 
-        self.progress_bar = ttk.Progressbar(frame, variable=self.progress, maximum=5, mode="determinate")
-        self.progress_bar.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(8, 6))
+        self.progress_bar = ttk.Progressbar(frame, variable=self.progress, maximum=5, mode="determinate", style="App.Horizontal.TProgressbar")
+        self.progress_bar.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(0, 20))
         row += 1
 
-        actions = ttk.Frame(frame)
-        actions.grid(row=row, column=0, columnspan=3, sticky=tk.EW, pady=(18, 8))
-        self.buttons["generate"] = ttk.Button(actions, text=self.tr("generate"), command=self.generate)
-        self.buttons["generate"].pack(side=tk.LEFT)
-        self.buttons["open_output"] = ttk.Button(actions, text=self.tr("open_output"), command=self.open_output)
-        self.buttons["open_browser"] = ttk.Button(actions, text=self.tr("open_browser"), command=self.open_browser)
+        actions = tk.Frame(frame, bg="#f7f8f7")
+        actions.grid(row=row, column=0, columnspan=3, sticky=tk.E, pady=(0, 16))
+        self.buttons["generate"] = ttk.Button(actions, text=self.tr("generate"), command=self.generate, style="Primary.TButton")
+        self.buttons["generate"].pack(side=tk.LEFT, ipadx=18, ipady=8)
+        self.buttons["open_output"] = ttk.Button(actions, text=self.tr("open_output"), command=self.open_output, style="Secondary.TButton")
+        self.buttons["open_browser"] = ttk.Button(actions, text=self.tr("open_browser"), command=self.open_browser, style="Secondary.TButton")
         row += 1
 
-        ttk.Label(frame, textvariable=self.status).grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=6)
+        ttk.Label(frame, textvariable=self.status, style="Hint.TLabel").grid(row=row, column=0, columnspan=3, sticky=tk.W)
+
+    def configure_styles(self) -> None:
+        style = ttk.Style(self.root)
+        style.theme_use("clam")
+        style.configure(".", font=("TkDefaultFont", 13), background="#f7f8f7", foreground="#12211c")
+        style.configure("TLabel", background="#f7f8f7", foreground="#5f6f69", font=("TkDefaultFont", 15, "bold"))
+        style.configure("Hint.TLabel", background="#f7f8f7", foreground="#5f6f69", font=("TkDefaultFont", 11))
+        style.configure("App.TEntry", fieldbackground="white", foreground="#12211c", bordercolor="#d7dedb", lightcolor="#d7dedb", darkcolor="#d7dedb", borderwidth=1, relief="flat", padding=(12, 8), font=("TkDefaultFont", 16, "bold"))
+        style.configure("App.TCombobox", fieldbackground="white", foreground="#12211c", bordercolor="#d7dedb", arrowcolor="#5f6f69", padding=(12, 8), font=("TkDefaultFont", 16, "bold"))
+        style.configure("App.TCheckbutton", background="#f7f8f7", foreground="#5f6f69", font=("TkDefaultFont", 12))
+        style.configure("Primary.TButton", background="#075e54", foreground="white", bordercolor="#075e54", focusthickness=0, padding=(18, 10), font=("TkDefaultFont", 18, "bold"))
+        style.map("Primary.TButton", background=[("disabled", "#9bb5af"), ("active", "#0a7668")], foreground=[("disabled", "#edf4f1")])
+        style.configure("Secondary.TButton", background="white", foreground="#075e54", bordercolor="#c9d9d6", padding=(16, 10), font=("TkDefaultFont", 15))
+        style.map("Secondary.TButton", background=[("active", "#f0f7f4")])
+        style.configure("TButton", padding=(12, 8), font=("TkDefaultFont", 12, "bold"))
+        style.configure("App.Horizontal.TProgressbar", troughcolor="#d9e5e1", background="#00a884", bordercolor="#d9e5e1", lightcolor="#00a884", darkcolor="#00a884")
+
+    def form_label(self, parent: tk.Widget, text: str, row: int, column: int) -> ttk.Label:
+        label = ttk.Label(parent, text=text)
+        label.grid(row=row, column=column, sticky=tk.W, pady=(0, 8))
+        return label
 
     def hide_generated_actions(self) -> None:
         self.buttons["open_output"].pack_forget()
