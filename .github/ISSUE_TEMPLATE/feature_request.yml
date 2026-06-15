@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest an improvement for the CLI, GUI, generated viewer, or website.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please open an issue before starting implementation. Pull requests should usually come from a fork or feature branch and link back to this issue."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Parser
+        - Generated HTML viewer
+        - Media gallery
+        - Audio conversion
+        - GUI
+        - Installer/release
+        - Documentation/site
+        - Other
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: contribution
+    attributes:
+      label: Contribution plan
+      description: Tell us if you want to submit a PR for this feature.

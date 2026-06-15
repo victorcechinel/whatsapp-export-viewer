@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhatsApp Export Viewer</title>
+  <meta name="description" content="Choose your language for WhatsApp Export Viewer, a private offline WhatsApp chat to HTML converter for Windows, macOS, and Linux.">
+  <link rel="canonical" href="https://victorcechinel.github.io/whatsapp-export-viewer/">
+  <link rel="alternate" hreflang="en" href="https://victorcechinel.github.io/whatsapp-export-viewer/en/">
+  <link rel="alternate" hreflang="pt-BR" href="https://victorcechinel.github.io/whatsapp-export-viewer/pt-BR/">
+  <link rel="alternate" hreflang="es" href="https://victorcechinel.github.io/whatsapp-export-viewer/es/">
+  <link rel="alternate" hreflang="x-default" href="https://victorcechinel.github.io/whatsapp-export-viewer/en/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    const lang = (navigator.language || "en").toLowerCase();
+    const target = lang.startsWith("pt") ? "pt-BR/index.html" : lang.startsWith("es") ? "es/index.html" : "en/index.html";
+    window.location.replace(target);
+  </script>
+</head>
+<body>
+  <main class="redirect">
+    <h1>WhatsApp Export Viewer</h1>
+    <p>Choose your language:</p>
+    <p><a class="button primary" href="en/">English</a> <a class="button" href="pt-BR/">Português</a> <a class="button" href="es/">Español</a></p>
+  </main>
+</body>
+</html>

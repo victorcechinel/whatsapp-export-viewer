@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="{{viewer_lang}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhatsApp Export Viewer</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <header class="brand">
+        <div class="brand-mark">W</div>
+        <div>
+          <h1>WhatsApp Export Viewer</h1>
+          <p>{{viewer_tagline}}</p>
+        </div>
+      </header>
+      <section class="controls">
+        <div class="search-row">
+          <input id="search" type="search" placeholder="{{viewer_search_placeholder}}">
+          <button id="prevResult" class="icon-button" type="button" title="{{viewer_previous_result}}">‹</button>
+          <button id="nextResult" class="icon-button" type="button" title="{{viewer_next_result}}">›</button>
+        </div>
+        <div id="searchStatus" class="search-status">{{viewer_no_search}}</div>
+        <div id="typeDropdown" class="custom-select" data-value="all">
+          <button id="typeButton" type="button" aria-haspopup="listbox" aria-expanded="false">{{viewer_all_types}}</button>
+          <div id="typeOptions" class="custom-options" role="listbox"></div>
+        </div>
+        <div id="participantDropdown" class="custom-select" data-value="">
+          <button id="participantButton" type="button" aria-haspopup="listbox" aria-expanded="false">{{viewer_all_participants}}</button>
+          <div id="participantOptions" class="custom-options" role="listbox"></div>
+        </div>
+        <div class="date-filters">
+          <input id="dateFrom" type="text" inputmode="numeric" placeholder="{{viewer_from_date}}">
+          <input id="dateTo" type="text" inputmode="numeric" placeholder="{{viewer_to_date}}">
+        </div>
+        <button id="clearFilters" class="toggle" type="button">{{viewer_clear_filters}}</button>
+        <button id="compactMode" class="toggle" type="button" aria-pressed="false">{{viewer_compact_mode}}</button>
+      </section>
+      <section class="stats">
+        <button class="stat active" type="button" data-view="chat"><b id="total">0</b><span>{{viewer_messages}}</span></button>
+        <button class="stat" type="button" data-kind="images"><b id="images">0</b><span>{{viewer_images}}</span></button>
+        <button class="stat" type="button" data-kind="videos"><b id="videos">0</b><span>{{viewer_videos}}</span></button>
+        <button class="stat" type="button" data-kind="audios"><b id="audios">0</b><span>{{viewer_audios}}</span></button>
+        <button class="stat" type="button" data-kind="documents"><b id="docs">0</b><span>{{viewer_documents}}</span></button>
+      </section>
+      <section class="sidebar-section participants"><h2>{{viewer_participants}}</h2><div id="participants"></div></section>
+      <section class="sidebar-section dates"><h2>{{viewer_dates}}</h2><div id="dates"></div></section>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div><strong id="viewTitle">{{viewer_chat}}</strong><br><span id="shown">{{viewer_loading}}</span></div>
+        <div>
+          <button id="backToChat" class="back" type="button">{{viewer_back}}</button>
+          <button id="more" class="download" type="button">{{viewer_load_more}}</button>
+        </div>
+      </div>
+      <section id="messages" class="messages"></section>
+    </main>
+  </div>
+  <div id="lightbox" class="lightbox"><button id="closeLightbox" type="button" aria-label="{{viewer_close_lightbox}}">×</button><img id="lightboxImg" alt=""></div>
+  <script src="data/bootstrap.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

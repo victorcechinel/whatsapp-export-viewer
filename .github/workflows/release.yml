@@ -1,0 +1,155 @@
+name: Release
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Semantic release
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-release-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    outputs:
+      released: ${{ steps.release.outputs.released || 'false' }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Pin branch to workflow SHA
+        run: git reset --hard ${{ github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest
+
+      - name: Semantic version and GitHub release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v10.5.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: "github-actions"
+          git_committer_email: "actions@users.noreply.github.com"
+
+      - name: Upload Python distributions to release
+        if: steps.release.outputs.released == 'true'
+        uses: python-semantic-release/publish-action@v10.5.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.release.outputs.tag }}
+
+  binaries:
+    name: Build ${{ matrix.asset-name }}
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            asset-name: whatsapp-export-viewer-windows-x64
+            cli-name: whatsapp-export-viewer.exe
+            gui-name: whatsapp-export-viewer-gui.exe
+            archive: zip
+          - os: macos-13
+            asset-name: whatsapp-export-viewer-macos-x64
+            cli-name: whatsapp-export-viewer
+            gui-name: whatsapp-export-viewer-gui
+            archive: tar
+          - os: macos-latest
+            asset-name: whatsapp-export-viewer-macos-arm64
+            cli-name: whatsapp-export-viewer
+            gui-name: whatsapp-export-viewer-gui
+            archive: tar
+          - os: ubuntu-latest
+            asset-name: whatsapp-export-viewer-linux-x64
+            cli-name: whatsapp-export-viewer
+            gui-name: whatsapp-export-viewer-gui
+            archive: tar
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Linux GUI system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk tk-dev ffmpeg
+
+      - name: Install macOS FFmpeg
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
+      - name: Install Windows FFmpeg
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install ffmpeg -y
+
+      - name: Install build tooling
+        run: python -m pip install -e ".[dev]"
+
+      - name: Test
+        run: pytest
+
+      - name: Build CLI executable
+        run: python scripts/build_binary.py cli --require-ffmpeg
+
+      - name: Build GUI executable
+        run: python scripts/build_binary.py gui --require-ffmpeg
+
+      - name: Prepare Windows package
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "release-assets/${{ matrix.asset-name }}"
+          Copy-Item "dist/${{ matrix.cli-name }}" "release-assets/${{ matrix.asset-name }}/${{ matrix.cli-name }}"
+          Copy-Item "dist/${{ matrix.gui-name }}" "release-assets/${{ matrix.asset-name }}/${{ matrix.gui-name }}"
+          Compress-Archive -Path "release-assets/${{ matrix.asset-name }}/*" -DestinationPath "release-assets/${{ matrix.asset-name }}.zip"
+
+      - name: Prepare Unix package
+        if: matrix.archive == 'tar'
+        shell: bash
+        run: |
+          mkdir -p "release-assets/${{ matrix.asset-name }}"
+          cp "dist/${{ matrix.cli-name }}" "release-assets/${{ matrix.asset-name }}/${{ matrix.cli-name }}"
+          cp "dist/${{ matrix.gui-name }}" "release-assets/${{ matrix.asset-name }}/${{ matrix.gui-name }}"
+          chmod +x "release-assets/${{ matrix.asset-name }}/${{ matrix.cli-name }}" "release-assets/${{ matrix.asset-name }}/${{ matrix.gui-name }}"
+          tar -czf "release-assets/${{ matrix.asset-name }}.tar.gz" -C release-assets "${{ matrix.asset-name }}"
+
+      - name: Upload binary package to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          files=()
+          while IFS= read -r file; do files+=("$file"); done < <(find release-assets -maxdepth 1 -type f \( -name "*.zip" -o -name "*.tar.gz" \))
+          gh release upload "${{ needs.release.outputs.tag }}" "${files[@]}" --clobber

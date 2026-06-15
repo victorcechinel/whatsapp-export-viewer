@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a problem converting or viewing a WhatsApp export.
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for reporting a bug. Please do not paste private chats or real personal data. If you plan to fix this, open this issue first and then submit a pull request from your fork or branch."
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: whatsapp
+    attributes:
+      label: WhatsApp export source
+      options:
+        - Android
+        - iPhone
+        - Unknown
+  - type: textarea
+    id: sample
+    attributes:
+      label: Minimal fictional sample
+      description: Replace names and content with fictional data.
+      render: text
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Export chat from WhatsApp
+        2. Run the GUI or CLI
+        3. Open index.html
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Drag screenshots here if useful. Do not include private chat content.

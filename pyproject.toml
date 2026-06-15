@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "whatsapp-export-viewer"
+version = "0.1.0"
+description = "Convert WhatsApp ZIP chat exports into beautiful, searchable, fully offline HTML archives."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "Victor Cechinel" }
+]
+keywords = [
+  "whatsapp",
+  "whatsapp export",
+  "chat export",
+  "html archive",
+  "offline viewer",
+  "privacy",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Communications :: Chat",
+  "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+  "Topic :: Utilities",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "pytest>=8.0",
+  "pyinstaller>=6.0",
+  "python-semantic-release>=10.0",
+]
+
+[project.urls]
+Homepage = "https://victorcechinel.github.io/whatsapp-export-viewer/"
+Repository = "https://github.com/victorcechinel/whatsapp-export-viewer"
+Issues = "https://github.com/victorcechinel/whatsapp-export-viewer/issues"
+
+[project.scripts]
+whatsapp-export-viewer = "whatsapp_export_viewer.cli:main"
+whatsapp-viewer = "whatsapp_export_viewer.cli:main"
+whatsapp-export-viewer-gui = "whatsapp_export_viewer.gui:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["whatsapp_export_viewer"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "whatsapp_export_viewer",
+  "scripts",
+  "docs",
+  "tests",
+  "README.md",
+  "CONTRIBUTING.md",
+  "CHANGELOG.md",
+  "LICENSE",
+  "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.semantic_release]
+commit_parser = "conventional"
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["whatsapp_export_viewer/__init__.py:__version__"]
+build_command = "python -m pip install build && python -m build"
+commit_message = "chore(release): v{version} [skip ci]"
+tag_format = "v{version}"
+allow_zero_version = true
+major_on_zero = false
+
+[tool.semantic_release.remote]
+type = "github"
+token = { env = "GH_TOKEN" }
+
+[tool.semantic_release.changelog]
+mode = "update"
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+output_format = "md"
+mask_initial_release = true
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
