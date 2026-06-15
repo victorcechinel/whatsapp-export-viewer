@@ -28,6 +28,8 @@ LINE = "#d7e2de"
 PROGRESS_BG = "#d9e5e1"
 PROGRESS_FG = "#00a884"
 FONT_FAMILY = "TkDefaultFont"
+CALENDAR_WIDTH = 392
+CALENDAR_HEIGHT = 376
 
 
 def format_gui_date(value: date, language: str) -> str:
@@ -216,20 +218,32 @@ class CalendarPopup:
         self.popup.overrideredirect(True)
         self.popup.configure(bg=PANEL, highlightbackground=LINE, highlightthickness=1)
         self.popup.transient(anchor.winfo_toplevel())
-        x = anchor.winfo_rootx()
-        y = anchor.winfo_rooty() + anchor.winfo_height() + 4
-        self.popup.geometry(f"300x330+{x}+{y}")
+        x, y = self.position_popup()
+        self.popup.geometry(f"{CALENDAR_WIDTH}x{CALENDAR_HEIGHT}+{x}+{y}")
         self.body = tk.Frame(self.popup, bg=PANEL, padx=12, pady=12)
         self.body.pack(fill=tk.BOTH, expand=True)
         self.popup.bind("<FocusOut>", lambda _event: self.close())
         self.render()
         self.popup.focus_force()
 
+    def position_popup(self) -> tuple[int, int]:
+        x = self.anchor.winfo_rootx()
+        y = self.anchor.winfo_rooty() + self.anchor.winfo_height() + 6
+        screen_width = self.anchor.winfo_screenwidth()
+        screen_height = self.anchor.winfo_screenheight()
+        if x + CALENDAR_WIDTH > screen_width - 12:
+            x = max(12, screen_width - CALENDAR_WIDTH - 12)
+        if y + CALENDAR_HEIGHT > screen_height - 48:
+            y = max(12, self.anchor.winfo_rooty() - CALENDAR_HEIGHT - 6)
+        return x, y
+
     def render(self) -> None:
         for child in self.body.winfo_children():
             child.destroy()
+        for column in range(7):
+            self.body.columnconfigure(column, minsize=50, weight=1, uniform="calendar")
         header = tk.Frame(self.body, bg=PANEL)
-        header.grid(row=0, column=0, columnspan=7, sticky=tk.EW, pady=(0, 8))
+        header.grid(row=0, column=0, columnspan=7, sticky=tk.EW, pady=(0, 10))
         StyledMiniButton(header, "<", self.previous_month).pack(side=tk.LEFT)
         tk.Label(
             header,
@@ -242,7 +256,7 @@ class CalendarPopup:
 
         weekdays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] if normalize_language(self.language_getter()) == "en" else ["Se", "Te", "Qa", "Qi", "Se", "Sa", "Do"]
         for column, weekday in enumerate(weekdays):
-            tk.Label(self.body, text=weekday, bg=PANEL, fg=MUTED, font=(FONT_FAMILY, 9, "bold"), width=4).grid(row=1, column=column, pady=(0, 4))
+            tk.Label(self.body, text=weekday, bg=PANEL, fg=MUTED, font=(FONT_FAMILY, 9, "bold")).grid(row=1, column=column, sticky=tk.EW, pady=(0, 4))
 
         today = date.today()
         calendar = Calendar(firstweekday=0)
@@ -251,8 +265,8 @@ class CalendarPopup:
                 in_month = day.month == self.month
                 bg = "#eef6f2" if day == today else PANEL
                 fg = TEXT if in_month else "#a5b1ad"
-                cell = tk.Label(self.body, text=str(day.day), bg=bg, fg=fg, width=4, height=2, font=(FONT_FAMILY, 10, "bold" if in_month else "normal"))
-                cell.grid(row=row_index, column=column, padx=1, pady=1)
+                cell = tk.Label(self.body, text=str(day.day), bg=bg, fg=fg, height=2, font=(FONT_FAMILY, 10, "bold" if in_month else "normal"))
+                cell.grid(row=row_index, column=column, sticky=tk.NSEW, padx=2, pady=2)
                 cell.configure(cursor="hand2")
                 cell.bind("<Button-1>", lambda _event, value=day: self.pick(value))
                 cell.bind("<Enter>", lambda event: event.widget.configure(bg="#dff3ea"))
@@ -470,9 +484,9 @@ class ViewerApp:
     def build_ui(self) -> None:
         self.root.title(self.tr("app_title"))
         width = min(1080, max(920, self.root.winfo_screenwidth() - 120))
-        height = min(920, max(760, self.root.winfo_screenheight() - 120))
+        height = min(940, max(720, self.root.winfo_screenheight() - 80))
         self.root.geometry(f"{width}x{height}")
-        self.root.minsize(860, 680)
+        self.root.minsize(860, 640)
         self.root.configure(bg=BG)
         self.configure_styles()
 
@@ -480,18 +494,7 @@ class ViewerApp:
         page.pack(fill=tk.BOTH, expand=True)
 
         shell = tk.Frame(page.inner, bg=SURFACE, highlightbackground="#d6e2de", highlightthickness=1)
-        shell.pack(fill=tk.BOTH, expand=True, padx=32, pady=28)
-
-        header = tk.Frame(shell, bg=GREEN, height=78)
-        header.pack(fill=tk.X)
-        header.pack_propagate(False)
-        controls = tk.Frame(header, bg=GREEN)
-        controls.pack(side=tk.LEFT, padx=(38, 22))
-        for index, color in enumerate(("#c7dddd", "#9fc0bb", "#729994")):
-            dot = tk.Canvas(controls, width=18, height=18, bg=GREEN, highlightthickness=0)
-            dot.create_oval(3, 3, 15, 15, fill=color, outline=color)
-            dot.grid(row=0, column=index, padx=5)
-        tk.Label(header, text=self.tr("app_title"), bg=GREEN, fg="white", font=(FONT_FAMILY, 26, "bold")).pack(side=tk.LEFT)
+        shell.pack(fill=tk.BOTH, expand=True, padx=32, pady=24)
 
         frame = tk.Frame(shell, bg=SURFACE, padx=42, pady=28)
         frame.pack(fill=tk.BOTH, expand=True)
